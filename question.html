@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question • OlegOverFlow</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="header">
+    <div class="header__wrapper">
+        <span class="header__logo">OlegOverFlow</span>
+        <div class="header__search-container">
+            <input type="text" class="header__search" placeholder="Search...">
+            <a class="header__ask-btn" href="ask.html">ASK!</a>
+        </div>
+        <div class="header__profile">
+            <img src="profile_picture.png" alt="pic" class="header__profile__image">
+            <div class="header__profile__user">
+                <span class="header__profile__username"><a href="settings.html">User</a></span>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="main">
+    <section class="questions">
+        <div class="stack">
+            <div class="question__root">
+                <div class="question__aside">
+                    <img src="profile-picture.png" alt="pic" class="question__image">
+                    <input class="question__votes" type="number" value="5">
+                </div>
+                <div class="question__content">
+                    <h1 class="question__header question__header--big">How to build a moon park?</h1>
+                    <p class="question__description">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ulla m numquam nihil ex voluptate velit exercitationem quam, omnis veritatis. Ut nisi enim veniam, quis nostrum exercitiam commodi.</p>
+                    <div class="question__footer">
+                        <span></span>
+                        <div class="question__tags">
+                            <span class="question__subtitle">Tags</span>
+                            <div class="question__tags__list">
+                                <a class="tag" href="tag.html?tag=black-jack">black-jack</a>
+                                <a class="tag" href="tag.html?tag=bender">bender</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="answers__title">Answers</h3>
+
+            <div class="answer__root">
+                <div class="answer__aside">
+                    <img src="profile-picture.png" alt="pic" class="answer__image">
+                    <input class="answer__votes" type="number" value="5">
+                </div>
+                <div class="answer__content">
+                    <p class="answer__text">First of all I would like to thank you for the invitation to participate. Russia is the huge territory which in many respects needs to be rendered habitable.</p>
+                    <div class="answer__correct">✓ Correct!</div>
+                </div>
+            </div>
+
+            <div class="answer__root">
+                <div class="answer__aside">
+                    <img src="profile-picture.png" alt="pic" class="answer__image">
+                    <input class="answer__votes" type="number" value="3">
+                </div>
+                <div class="answer__content">
+                    <p class="answer__text">First of all I would like to thank you for the invitation to participate in such a discussion. Russia is the huge territory which in many respects needs to be rendered habitable.</p>
+                </div>
+            </div>
+
+            <div class="questions__pagination">
+                <a href="#" class="questions__pagination__item">1</a>
+                <a href="#" class="questions__pagination__item">2</a>
+                <a href="#" class="questions__pagination__item">3</a>
+                <a href="#" class="questions__pagination__item">...</a>
+                <a href="#" class="questions__pagination__item">10</a>
+            </div>
+
+            <form class="form" action="#" method="post">
+                <div class="form__group">
+                    <label class="form__label" for="answer">Enter your answer here.</label>
+                    <textarea class="form__textarea" id="answer" name="answer" maxlength="10000" required></textarea>
+                </div>
+                <div class="form__actions">
+                    <button class="btn btn--primary" type="submit">Answer</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <aside class="aside">
+        <div class="aside__tags">
+            <span class="aside__subtitle">Popular Tags</span>
+            <div class="aside__tags__list">
+                <a href="tag.html?tag=perl">perl</a>
+                <a href="tag.html?tag=python">python</a>
+                <a href="tag.html?tag=django">django</a>
+                <a href="tag.html?tag=mysql">MySQL</a>
+                <a href="tag.html?tag=firefox">Firefox</a>
+            </div>
+        </div>
+        <div class="aside__members">
+            <span class="aside__subtitle">Best Members</span>
+            <div class="aside__members__list">
+                <a href="#">Mr. Freeman</a>
+                <a href="#">Dr. House</a>
+                <a href="#">Bender</a>
+                <a href="#">Queen Victoria</a>
+                <a href="#">V Pupkin</a>
+            </div>
+        </div>
+    </aside>
+</main>
+</body>
+</html>
