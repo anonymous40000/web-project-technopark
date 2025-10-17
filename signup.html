@@ -1,0 +1,94 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register • OlegOverFlow</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="header">
+    <div class="header__wrapper">
+        <span class="header__logo">OlegOverFlow</span>
+        <div class="header__search-container">
+            <input type="text" class="header__search" placeholder="Search...">
+            <a class="header__ask-btn" href="ask.html">ASK!</a>
+        </div>
+        <div class="header__profile">
+            <img src="profile_picture.png" alt="pic" class="header__profile__image">
+            <div class="header__profile__user">
+                <span class="header__profile__username"><a href="settings.html">User</a></span>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="main">
+    <section class="questions" style="width:70%">
+        <div class="questions__title">
+            <h2>Registration</h2>
+        </div>
+
+        <form class="form" action="#" method="post" enctype="multipart/form-data">
+            <div class="form__error">Sorry, this email address already registered!</div>
+
+            <div class="form__group">
+                <label class="form__label" for="login">Login</label>
+                <input class="form__input" id="login" name="login" type="text" maxlength="30" value="dr_pepper" required>
+            </div>
+
+            <div class="form__group">
+                <label class="form__label" for="email">Email</label>
+                <input class="form__input" id="email" name="email" type="email" maxlength="100" value="dr.pepper@mail.ru" required>
+            </div>
+
+            <div class="form__group">
+                <label class="form__label" for="nick">NickName</label>
+                <input class="form__input" id="nick" name="nick" type="text" maxlength="50" value="Dr. Pepper" required>
+            </div>
+
+            <div class="form__group">
+                <label class="form__label" for="password">Password</label>
+                <input class="form__input" id="password" name="password" type="password" maxlength="64" placeholder="Enter your password here" required>
+            </div>
+
+            <div class="form__group">
+                <label class="form__label" for="password2">Repeat password</label>
+                <input class="form__input" id="password2" name="password2" type="password" maxlength="64" placeholder="Enter your password here" required>
+            </div>
+
+            <div class="form__group">
+                <label class="form__label" for="avatar">Upload avatar</label>
+                <input class="form__file" id="avatar" name="avatar" type="file" accept="image/*">
+            </div>
+
+            <div class="form__actions">
+                <button class="btn btn--primary" type="submit">Register!</button>
+            </div>
+        </form>
+    </section>
+
+    <aside class="aside">
+        <div class="aside__tags">
+            <span class="aside__subtitle">Popular Tags</span>
+            <div class="aside__tags__list">
+                <a href="tag.html?tag=python">python</a>
+                <a href="tag.html?tag=django">django</a>
+                <a href="tag.html?tag=mysql">MySQL</a>
+            </div>
+        </div>
+        <div class="aside__members">
+            <span class="aside__subtitle">Best Members</span>
+            <div class="aside__members__list">
+                <a href="#">Mr. Freeman</a>
+                <a href="#">Dr. House</a>
+                <a href="#">Bender</a>
+                <a href="#">Queen Victoria</a>
+                <a href="#">V Pupkin</a>
+            </div>
+        </div>
+    </aside>
+</main>
+</body>
+</html>
