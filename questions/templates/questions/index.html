@@ -1,0 +1,50 @@
+{% extends "questions/base.html" %}
+{% load static %}
+
+{% block main %}
+<section class="questions">
+    <div class="questions__root">
+        <div class="questions__title">
+            <h2>{{ page_title }}</h2>
+            <a href="{% url 'questions:hot' %}">Hot Questions</a>
+        </div>
+        <div class="questions__content">
+            {% for q in questions %}
+            <div class="question__root">
+                <div class="question__aside">
+                    <img src="{% static 'questions/img/portrait.jpg' %}" alt="pic" class="question__image">
+                    <input class="question__votes" type="number" value="{{ q.votes }}">
+                </div>
+                <div class="question__content">
+                <h3 class="question__header">
+                    <a href="{% url 'questions:question_detail' q.id %}">{{ q.title }}</a>
+                </h3>
+                    <p class="question__description">{{ q.description }}</p>
+                    <div class="question__footer">
+                        <a href="{% url 'questions:question_detail' q.id %}" class="question__answers">answers ({{ q.answers_count }})</a>
+                        <div class="question__tags">
+                            <span class="question__subtitle">Tags</span>
+                            <div class="question__tags__list">
+                                {% for t in q.tags %}
+                                    <a class="tag" href="{% url 'questions:tag' %}?tag={{ t.name }}">{{ t.name }}</a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% include 'questions/blocks/pagination.html' with objects=questions %}
+    </div>
+</section>
+
+<script>
+const params = new URLSearchParams(location.search);
+const currentTag = params.get('tag');
+if (currentTag) {
+    document.title = `Tag: ${currentTag} • OlegOverFlow`;
+}
+</script>
+{% endblock %}

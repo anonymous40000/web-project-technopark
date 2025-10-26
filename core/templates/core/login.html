@@ -1,0 +1,30 @@
+{% extends "questions/base.html" %}
+{% load static %}
+
+{% block title %}Login • OlegOverFlow{% endblock %}
+
+{% block main %}
+    <section class="questions" style="width:70%">
+        <div class="questions__title">
+            <h2>Log In</h2>
+        </div>
+
+        <form class="form" action="#" method="post">
+            <div class="form__error">Sorry, wrong password!</div>
+
+            <div class="form__group">
+                <label class="form__label" for="login">Login</label>
+                <input class="form__input" id="login" name="login" type="text" maxlength="30" placeholder="Enter your login here" required>
+            </div>
+            <div class="form__group">
+                <label class="form__label" for="password">Password</label>
+                <input class="form__input" id="password" name="password" type="password" maxlength="64" placeholder="Enter your password here" required>
+            </div>
+
+            <div class="form__actions">
+                <button class="btn btn--primary" type="submit">Log in!</button>
+                <a class="btn btn--secondary" href="signup.html">create new account</a>
+            </div>
+        </form>
+    </section>
+{% endblock %}

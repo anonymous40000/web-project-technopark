@@ -1,0 +1,26 @@
+{% if objects.paginator.num_pages > 1 %}
+<div class="questions__pagination">
+    {% if objects.has_previous %}
+        <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+           class="questions__pagination__item">« First</a>
+        <a href="?page={{ objects.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+           class="questions__pagination__item">‹ Previous</a>
+    {% endif %}
+
+    {% for num in objects.paginator.page_range %}
+        {% if objects.number == num %}
+            <span class="questions__pagination__item questions__pagination__item--current">{{ num }}</span>
+        {% elif num > objects.number|add:'-3' and num < objects.number|add:'3' %}
+            <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+               class="questions__pagination__item">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if objects.has_next %}
+        <a href="?page={{ objects.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+           class="questions__pagination__item">Next ›</a>
+        <a href="?page={{ objects.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+           class="questions__pagination__item">Last »</a>
+    {% endif %}
+</div>
+{% endif %}

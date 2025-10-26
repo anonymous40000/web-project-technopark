@@ -1,0 +1,20 @@
+{% load static %}
+
+<aside class="aside">
+    <div class="aside__tags">
+        <span class="aside__subtitle">Popular Tags</span>
+        <div class="aside__tags__list">
+            {% for tag in popular_tags %}
+            <a href="{% url 'questions:tag' tag %}">{{ tag }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="aside__members">
+        <span class="aside__subtitle">Best Members</span>
+        <div class="aside__members__list">
+            {% for member in best_members %}
+            <a href="#">{{ member }}</a>
+            {% endfor %}
+        </div>
+    </div>
+</aside>

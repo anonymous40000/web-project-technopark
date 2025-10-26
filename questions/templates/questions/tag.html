@@ -1,0 +1,60 @@
+{% extends "questions/base.html" %}
+{% load static %}
+
+{% block title %}Tag: {{ tag_name|default:"all" }} • OlegOverFlow{% endblock %}
+
+{% block main %}
+<main class="main">
+    <section class="questions">
+        <div class="questions__title">
+            <h2>Tag: <span id="tagTitle">{{ tag_name|default:"all" }}</span></h2>
+        </div>
+
+        <div id="list" class="questions__content">
+            {% for question in questions %}
+            <div class="question__root" data-tags="{{ question.tags|join:',' }}">
+                <div class="question__aside">
+                    <img src="{% static 'questions/img/portrait.jpg' %}" alt="pic" class="question__image">
+                    <input class="question__votes" type="number" value="{{ question.votes }}">
+                </div>
+                <div class="question__content">
+                    <h3 class="question__header">
+                        <a href="{% url 'questions:question_detail' question.id %}">{{ question.title }}</a>
+                    </h3>
+                    <p class="question__description">{{ question.description }}</p>
+                    <div class="question__footer">
+                        <a href="{% url 'questions:question_detail' question.id %}" class="question__answers">answers ({{ question.answers_count }})</a>
+                        <div class="question__tags">
+                            <span class="question__subtitle">Tags</span>
+                            <div class="question__tags__list">
+                                {% for tag in question.tags %}
+                                <a class="tag" href="{% url 'questions:tag' tag.name %}/">{{ tag.name }}</a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="question__root">
+                <div class="question__content">
+                    <p>No questions found for this tag.</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% include 'questions/blocks/pagination.html' with objects=questions %}
+    </section>
+</main>
+
+<script>
+const params = new URLSearchParams(location.search);
+const current = (params.get('tag') || '').trim();
+document.getElementById('tagTitle').textContent = current || 'all';
+
+// Обновление title
+if (!current) document.title = 'All tags • OlegOverFlow';
+else document.title = `Tag: ${current} • OlegOverFlow`;
+</script>
+{% endblock %}

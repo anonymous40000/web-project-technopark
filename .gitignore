@@ -1,0 +1,40 @@
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+uploads/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.env
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Database migrations (optional - sometimes you want to keep them)
+# !/app/migrations/
+# /app/migrations/*
+# !/app/migrations/__init__.py
+
+# Static files (if collected)
+/staticfiles/

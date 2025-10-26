@@ -1,0 +1,22 @@
+{% load static %}
+    <header class="header">
+        <div class="header__wrapper">
+            <span class="header__logo">
+                <a href="/" style="text-decoration: none; color: inherit;">
+                    OlegOverFlow
+                </a>
+            </span>
+            <div class="header__search-container">
+                <input type="text" class="header__search" placeholder="Search...">
+                <a class="header__ask-btn" href="{% url 'questions:ask' %}">ASK!</a>
+            </div>
+            <div class="header__profile">
+                <img src="{% static 'questions/img/portrait.jpg' %}" alt="pic" class="header__profile__image">
+                <div class="header__profile__user">
+                    <span class="header__profile__username">
+                        <a href="{% url 'core:settings' %}">User</a>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>

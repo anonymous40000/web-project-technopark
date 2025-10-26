@@ -1,0 +1,40 @@
+{% extends "questions/base.html" %}
+{% load static %}
+
+{% block title %}Ask Question • OlegOverFlow{% endblock %}
+
+{% block main %}
+    <section class="questions" style="width:70%">
+        <div class="stack">
+            <div class="questions__title">
+                <h2>New Question</h2>
+            </div>
+
+            <form class="form" action="#" method="post">
+                <div class="form__error">Title is required. Text must be at least 20 characters.</div>
+
+                <div class="form__group">
+                    <label class="form__label" for="title">Title</label>
+                    <input class="form__input" id="title" name="title" type="text" placeholder="How to build a moon park?" maxlength="150" required>
+                    <div class="form__help">Max 150 characters</div>
+                </div>
+
+                <div class="form__group">
+                    <label class="form__label" for="text">Text</label>
+                    <textarea class="form__textarea" id="text" name="text" placeholder="Describe your problem in detail" maxlength="10000" required></textarea>
+                    <div class="form__help">Add details, steps, expected and actual result</div>
+                </div>
+
+                <div class="form__group">
+                    <label class="form__label" for="tags">Tags</label>
+                    <input class="form__input" id="tags" name="tags" type="text" placeholder="moon, park, puzzle" maxlength="250" required>
+                    <div class="form__help">Comma separated</div>
+                </div>
+
+                <div class="form__actions">
+                    <button class="btn btn--primary" type="submit">ASK!</button>
+                </div>
+            </form>
+        </div>
+    </section>
+{% endblock %}
