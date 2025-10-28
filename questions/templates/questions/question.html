@@ -20,7 +20,7 @@
                         <span class="question__subtitle">Tags</span>
                         <div class="question__tags__list">
                             {% for tag in question.tags %}
-                            <a class="tag" href="{{ tag.url }}">{{ tag.name }}</a>
+                            <a class="tag" href="/{{ tag.url }}">{{ tag.name }}</a>
                             {% endfor %}
                         </div>
                     </div>
@@ -38,25 +38,41 @@
             </div>
             <div class="answer__content">
                 <p class="answer__text">{{ answer.text }}</p>
+
                 {% if answer.is_correct %}
                 <div class="answer__correct">✓ Correct Answer</div>
                 {% endif %}
+
                 <div class="answer__meta">
                     <span class="answer__author">{{ answer.author }}</span>
                     <span class="answer__date">{{ answer.created_at }}</span>
+                </div>
+
+                {# Кнопки видны всем пользователям #}
+                <div class="answer__actions">
+                    {% if answer.is_correct %}
+                        <form action="{% url 'questions:unmark_answer_correct' question.id answer.id %}"
+                              method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit" class="btn">Снять отметку правильного</button>
+                        </form>
+                    {% else %}
+                        <form action="{% url 'questions:mark_answer_correct' question.id answer.id %}"
+                              method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit" class="btn btn--primary">Отметить как правильный</button>
+                        </form>
+                    {% endif %}
                 </div>
             </div>
         </div>
         {% endfor %}
 
         {% if question.answers_count > 5 %}
-        <div class="questions__pagination">
-            <a href="#" class="questions__pagination__item">1</a>
-            <a href="#" class="questions__pagination__item">2</a>
-            <a href="#" class="questions__pagination__item">3</a>
-            <a href="#" class="questions__pagination__item">...</a>
-            <a href="#" class="questions__pagination__item">10</a>
-        </div>
+            {# если у тебя реальная пагинация, оставь include; иначе можно убрать #}
+            {% include 'questions/blocks/pagination.html' with objects=questions %}
         {% endif %}
 
         <form class="form" action="#" method="post">
