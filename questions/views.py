@@ -1,5 +1,9 @@
 from django.shortcuts import render
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.views.decorators.http import require_POST
+from django.http import Http404
+from django.shortcuts import redirect
+from django.urls import reverse
 
 
 POPULAR_TAGS = [
@@ -14,17 +18,17 @@ BEST_MEMBERS = [
 ]
 
 QUESTIONS = [
-    {
+        {
         'id': 1,
         'profile_picture': 'profile-picture.png',
         'votes': 5,
         'title': 'How to build a mean peak?',
         'url': 'questions/1',
         'description': 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Ullam nulla laboriosam, tempore libero mollitia sunt omnis odit tenetur totam quam veritatis, sint atque facere laborum aperiam sapiente culpa dolorem vero.',
-        'answers_count': 3,
+        'answers_count': 10,
         'tags': [
-            {'name': 'bender', 'url': 'tag.html?tag=bender'},
-            {'name': 'black-jack', 'url': 'tag.html?tag=black-jack'}
+            {'name': 'bender', 'url': 'questions/tag/bender'},
+            {'name': 'black-jack', 'url': 'questions/tag/black-jack'}
         ],
         'answers': [
             {
@@ -44,7 +48,7 @@ QUESTIONS = [
                 'is_correct': False,
                 'author': 'Mr. Freeman',
                 'created_at': '2024-01-15 16:45:00'
-            }
+            },
         ]
     },
     {
@@ -56,9 +60,9 @@ QUESTIONS = [
         'description': 'I\'ve been trying to center a div for hours but nothing seems to work. I\'ve tried display: flex, margin: auto, but the div still won\'t center properly.',
         'answers_count': 7,
         'tags': [
-            {'name': 'css', 'url': 'tag.html?tag=css'},
-            {'name': 'html', 'url': 'tag.html?tag=html'},
-            {'name': 'flexbox', 'url': 'tag.html?tag=flexbox'}
+            {'name': 'css', 'url': 'questions/tag/css'},
+            {'name': 'html', 'url': 'questions/tag/html'},
+            {'name': 'flexbox', 'url': 'questions/tag/flexbox'}
         ],
         'answers': [
             {
@@ -81,9 +85,9 @@ QUESTIONS = [
         'description': 'My async function seems to be returning a promise instead of the actual value. I\'m using await but it\'s still not working correctly.',
         'answers_count': 4,
         'tags': [
-            {'name': 'javascript', 'url': 'tag.html?tag=javascript'},
-            {'name': 'async', 'url': 'tag.html?tag=async'},
-            {'name': 'promises', 'url': 'tag.html?tag=promises'}
+            {'name': 'javascript', 'url': 'questions/tag/javascript'},
+            {'name': 'async', 'url': 'questions/tag/async'},
+            {'name': 'promises', 'url': 'questions/tag/promises'}
         ],
         'answers': [
             {
@@ -106,9 +110,9 @@ QUESTIONS = [
         'description': 'Which is faster for large datasets - list comprehension or traditional for loops? I\'m working with datasets of over 1 million records and need optimal performance.',
         'answers_count': 11,
         'tags': [
-            {'name': 'python', 'url': 'tag.html?tag=python'},
-            {'name': 'performance', 'url': 'tag.html?tag=performance'},
-            {'name': 'optimization', 'url': 'tag.html?tag=optimization'}
+            {'name': 'python', 'url': 'questions/tag/python'},
+            {'name': 'performance', 'url': 'questions/tag/performance'},
+            {'name': 'optimization', 'url': 'questions/tag/optimization'}
         ],
         'answers': [
             {
@@ -131,9 +135,9 @@ QUESTIONS = [
         'description': 'My useEffect hook keeps running in an infinite loop even though I\'ve specified the dependency array correctly. What could be causing this behavior?',
         'answers_count': 2,
         'tags': [
-            {'name': 'react', 'url': 'tag.html?tag=react'},
-            {'name': 'hooks', 'url': 'tag.html?tag=hooks'},
-            {'name': 'useeffect', 'url': 'tag.html?tag=useeffect'}
+            {'name': 'react', 'url': 'questions/tag/react'},
+            {'name': 'hooks', 'url': 'questions/tag/hooks'},
+            {'name': 'useeffect', 'url': 'questions/tag/useeffect'}
         ],
         'answers': [
             {
@@ -156,9 +160,9 @@ QUESTIONS = [
         'description': 'What are the best practices for performing database migrations without causing downtime for users? Looking for strategies that have worked in production environments.',
         'answers_count': 6,
         'tags': [
-            {'name': 'database', 'url': 'tag.html?tag=database'},
-            {'name': 'migration', 'url': 'tag.html?tag=migration'},
-            {'name': 'devops', 'url': 'tag.html?tag=devops'}
+            {'name': 'database', 'url': 'questions/tag/database'},
+            {'name': 'migration', 'url': 'questions/tag/migration'},
+            {'name': 'devops', 'url': 'questions/tag/devops'}
         ],
         'answers': [
             {
@@ -181,9 +185,9 @@ QUESTIONS = [
         'description': 'My Docker container restarts every few hours without any apparent reason. How can I debug this issue and prevent random restarts?',
         'answers_count': 5,
         'tags': [
-            {'name': 'docker', 'url': 'tag.html?tag=docker'},
-            {'name': 'containers', 'url': 'tag.html?tag=containers'},
-            {'name': 'devops', 'url': 'tag.html?tag=devops'}
+            {'name': 'docker', 'url': 'questions/tag/docker'},
+            {'name': 'containers', 'url': 'questions/tag/containers'},
+            {'name': 'devops', 'url': 'questions/tag/devops'}
         ],
         'answers': [
             {
@@ -206,9 +210,9 @@ QUESTIONS = [
         'description': 'What are the current best practices for implementing authentication in REST APIs? Should I use JWT, OAuth2, or session-based authentication?',
         'answers_count': 8,
         'tags': [
-            {'name': 'api', 'url': 'tag.html?tag=api'},
-            {'name': 'authentication', 'url': 'tag.html?tag=authentication'},
-            {'name': 'security', 'url': 'tag.html?tag=security'}
+            {'name': 'api', 'url': 'questions/tag/api'},
+            {'name': 'authentication', 'url': 'questions/tag/authentication'},
+            {'name': 'security', 'url': 'questions/tag/security'}
         ],
         'answers': [
             {
@@ -231,9 +235,9 @@ QUESTIONS = [
         'description': 'My neural network model is achieving 99% accuracy on training data but only 60% on test data. How can I reduce overfitting?',
         'answers_count': 4,
         'tags': [
-            {'name': 'machine-learning', 'url': 'tag.html?tag=machine-learning'},
-            {'name': 'python', 'url': 'tag.html?tag=python'},
-            {'name': 'tensorflow', 'url': 'tag.html?tag=tensorflow'}
+            {'name': 'machine-learning', 'url': 'questions/tag/machine-learning'},
+            {'name': 'python', 'url': 'questions/tag/python'},
+            {'name': 'tensorflow', 'url': 'questions/tag/tensorflow'}
         ],
         'answers': [
             {
@@ -256,9 +260,9 @@ QUESTIONS = [
         'description': 'What are the best strategies for resolving complex merge conflicts in Git, especially when multiple developers are working on the same files?',
         'answers_count': 9,
         'tags': [
-            {'name': 'git', 'url': 'tag.html?tag=git'},
-            {'name': 'version-control', 'url': 'tag.html?tag=version-control'},
-            {'name': 'collaboration', 'url': 'tag.html?tag=collaboration'}
+            {'name': 'git', 'url': 'questions/tag/git'},
+            {'name': 'version-control', 'url': 'questions/tag/version-control'},
+            {'name': 'collaboration', 'url': 'questions/tag/collaboration'}
         ],
         'answers': [
             {
@@ -281,9 +285,9 @@ QUESTIONS = [
         'description': 'When should I choose microservices over a monolith architecture? What are the trade-offs and when does microservices become overkill?',
         'answers_count': 7,
         'tags': [
-            {'name': 'architecture', 'url': 'tag.html?tag=architecture'},
-            {'name': 'microservices', 'url': 'tag.html?tag=microservices'},
-            {'name': 'system-design', 'url': 'tag.html?tag=system-design'}
+            {'name': 'architecture', 'url': 'questions/tag/architecture'},
+            {'name': 'microservices', 'url': 'questions/tag/microservices'},
+            {'name': 'system-design', 'url': 'questions/tag/system-design'}
         ],
         'answers': [
             {
@@ -306,9 +310,9 @@ QUESTIONS = [
         'description': 'What are the best patterns for cache invalidation in Redis? I\'m having issues with stale data and race conditions.',
         'answers_count': 3,
         'tags': [
-            {'name': 'redis', 'url': 'tag.html?tag=redis'},
-            {'name': 'caching', 'url': 'tag.html?tag=caching'},
-            {'name': 'performance', 'url': 'tag.html?tag=performance'}
+            {'name': 'redis', 'url': 'questions/tag/redis'},
+            {'name': 'caching', 'url': 'questions/tag/caching'},
+            {'name': 'performance', 'url': 'questions/tag/performance'}
         ],
         'answers': [
             {
@@ -331,9 +335,9 @@ QUESTIONS = [
         'description': 'When should I use WebSockets versus Server-Sent Events for real-time communication in a web application?',
         'answers_count': 6,
         'tags': [
-            {'name': 'websocket', 'url': 'tag.html?tag=websocket'},
-            {'name': 'sse', 'url': 'tag.html?tag=sse'},
-            {'name': 'real-time', 'url': 'tag.html?tag=real-time'}
+            {'name': 'websocket', 'url': 'questions/tag/websocket'},
+            {'name': 'sse', 'url': 'questions/tag/sse'},
+            {'name': 'real-time', 'url': 'questions/tag/real-time'}
         ],
         'answers': [
             {
@@ -356,9 +360,9 @@ QUESTIONS = [
         'description': 'What is the difference between interface and type in TypeScript? When should I use one over the other?',
         'answers_count': 8,
         'tags': [
-            {'name': 'typescript', 'url': 'tag.html?tag=typescript'},
-            {'name': 'javascript', 'url': 'tag.html?tag=javascript'},
-            {'name': 'web-development', 'url': 'tag.html?tag=web-development'}
+            {'name': 'typescript', 'url': 'questions/tag/typescript'},
+            {'name': 'javascript', 'url': 'questions/tag/javascript'},
+            {'name': 'web-development', 'url': 'questions/tag/web-development'}
         ],
         'answers': [
             {
@@ -381,9 +385,9 @@ QUESTIONS = [
         'description': 'My Kubernetes pods are stuck in Pending state. How can I debug scheduling issues and resource constraints?',
         'answers_count': 5,
         'tags': [
-            {'name': 'kubernetes', 'url': 'tag.html?tag=kubernetes'},
-            {'name': 'devops', 'url': 'tag.html?tag=devops'},
-            {'name': 'containers', 'url': 'tag.html?tag=containers'}
+            {'name': 'kubernetes', 'url': 'questions/tag/kubernetes'},
+            {'name': 'devops', 'url': 'questions/tag/devops'},
+            {'name': 'containers', 'url': 'questions/tag/containers'}
         ],
         'answers': [
             {
@@ -406,9 +410,9 @@ QUESTIONS = [
         'description': 'When is GraphQL a better choice than REST for API design? What are the performance implications and complexity trade-offs?',
         'answers_count': 7,
         'tags': [
-            {'name': 'graphql', 'url': 'tag.html?tag=graphql'},
-            {'name': 'api', 'url': 'tag.html?tag=api'},
-            {'name': 'rest', 'url': 'tag.html?tag=rest'}
+            {'name': 'graphql', 'url': 'questions/tag/graphql'},
+            {'name': 'api', 'url': 'questions/tag/api'},
+            {'name': 'rest', 'url': 'questions/tag/rest'}
         ],
         'answers': [
             {
@@ -521,3 +525,42 @@ def hot_questions(request):
         "best_members": BEST_MEMBERS,
         "page_title": "Hot Questions"
     })
+
+
+def _get_question(q_id: int) -> dict:
+    for q in QUESTIONS:
+        if q.get('id') == q_id:
+            return q
+    raise Http404("Question not found")
+
+def _get_answer(question: dict, a_id: int) -> dict:
+    for a in question.get('answers', []):
+        if a.get('id') == a_id:
+            return a
+    raise Http404("Answer not found")
+
+def _redirect_back_or_detail(request, question: dict):
+    next_url = request.POST.get("next")
+    if next_url:
+        return redirect(next_url)
+    try:
+        return redirect(reverse("questions:detail", args=[question['id']]))
+    except Exception:
+        return redirect(f"/{question.get('url','')}")
+
+@require_POST
+def mark_answer_correct(request, question_id: int, answer_id: int):
+    question = _get_question(question_id)
+    _get_answer(question, answer_id) 
+
+    for ans in question.get('answers', []):
+        ans['is_correct'] = (ans.get('id') == answer_id)
+
+    return _redirect_back_or_detail(request, question)
+
+@require_POST
+def unmark_answer_correct(request, question_id: int, answer_id: int):
+    question = _get_question(question_id)
+    answer = _get_answer(question, answer_id)
+    answer['is_correct'] = False
+    return _redirect_back_or_detail(request, question)
