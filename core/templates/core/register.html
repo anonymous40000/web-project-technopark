@@ -4,47 +4,53 @@
 {% block title %}Register • OlegOverFlow{% endblock %}
 
 {% block main %}
-    <section class="questions" style="width:70%">
-        <div class="questions__title">
-            <h2>Registration</h2>
-        </div>
+<section class="questions" style="width:70%">
+  <div class="questions__title">
+    <h2>Registration</h2>
+  </div>
 
-        <form class="form" action="#" method="post" enctype="multipart/form-data">
-            <div class="form__error">Sorry, this email address already registered!</div>
+  <form class="form" action="" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
 
-            <div class="form__group">
-                <label class="form__label" for="login">Login</label>
-                <input class="form__input" id="login" name="login" type="text" maxlength="30" value="dr_pepper" required>
-            </div>
+    {% if messages %}
+      <ul class="form__messages">
+        {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+      </ul>
+    {% endif %}
 
-            <div class="form__group">
-                <label class="form__label" for="email">Email</label>
-                <input class="form__input" id="email" name="email" type="email" maxlength="100" value="dr.pepper@mail.ru" required>
-            </div>
+    <div class="form__group">
+      <label class="form__label" for="login">Login</label>
+      <input class="form__input" id="login" name="username" type="text" maxlength="30" required>
+    </div>
 
-            <div class="form__group">
-                <label class="form__label" for="nick">NickName</label>
-                <input class="form__input" id="nick" name="nick" type="text" maxlength="50" value="Dr. Pepper" required>
-            </div>
+    <div class="form__group">
+      <label class="form__label" for="email">Email</label>
+      <input class="form__input" id="email" name="email" type="email" maxlength="100" required>
+    </div>
 
-            <div class="form__group">
-                <label class="form__label" for="password">Password</label>
-                <input class="form__input" id="password" name="password" type="password" maxlength="64" placeholder="Enter your password here" required>
-            </div>
+    <div class="form__group">
+      <label class="form__label" for="nick">NickName</label>
+      <input class="form__input" id="nick" name="nickname" type="text" maxlength="50">
+    </div>
 
-            <div class="form__group">
-                <label class="form__label" for="password2">Repeat password</label>
-                <input class="form__input" id="password2" name="password2" type="password" maxlength="64" placeholder="Enter your password here" required>
-            </div>
+    <div class="form__group">
+      <label class="form__label" for="password">Password</label>
+      <input class="form__input" id="password" name="password1" type="password" maxlength="64" required>
+    </div>
 
-            <div class="form__group">
-                <label class="form__label" for="avatar">Upload avatar</label>
-                <input class="form__file" id="avatar" name="avatar" type="file" accept="image/*">
-            </div>
+    <div class="form__group">
+      <label class="form__label" for="password2">Repeat password</label>
+      <input class="form__input" id="password2" name="password2" type="password" maxlength="64" required>
+    </div>
 
-            <div class="form__actions">
-                <button class="btn btn--primary" type="submit">Register!</button>
-            </div>
-        </form>
-    </section>
+    <div class="form__group">
+      <label class="form__label" for="avatar">Upload avatar</label>
+      <input class="form__file" id="avatar" name="avatar" type="file" accept="image/*">
+    </div>
+
+    <div class="form__actions">
+      <button class="btn btn--primary" type="submit">Register!</button>
+    </div>
+  </form>
+</section>
 {% endblock %}

@@ -11,24 +11,25 @@
         </div>
 
         <div id="list" class="questions__content">
-            {% for question in questions %}
-            <div class="question__root" data-tags="{{ question.tags|join:',' }}">
+            {% for q in questions %}
+            <div class="question__root">
                 <div class="question__aside">
                     <img src="{% static 'questions/img/portrait.jpg' %}" alt="pic" class="question__image">
-                    <input class="question__votes" type="number" value="{{ question.votes }}">
+                    <input class="question__votes" type="number" value="{{ q.rating }}">
                 </div>
                 <div class="question__content">
                     <h3 class="question__header">
-                        <a href="{% url 'questions:question_detail' question.id %}">{{ question.title }}</a>
+                        <a href="{% url 'questions:question_detail' q.id %}">{{ q.name }}</a>
                     </h3>
-                    <p class="question__description">{{ question.description }}</p>
+                    <p class="question__description">{{ q.short_text }}</p>
                     <div class="question__footer">
-                        <a href="{% url 'questions:question_detail' question.id %}" class="question__answers">answers ({{ question.answers_count }})</a>
+                        <a href="{% url 'questions:question_detail' q.id %}" class="question__answers">answers ({{ q.answers_count }})</a>
                         <div class="question__tags">
                             <span class="question__subtitle">Tags</span>
                             <div class="question__tags__list">
-                                {% for tag in question.tags %}
-                                <a class="tag" href="{% url 'questions:tag' tag.name %}">{{ tag.name }}</a>
+                                {% for qt in q.question_tags.all %}
+                                <a class="tag" href="{% url 'questions:tag' %}?tag={{ qt.tag.name }}">{{ qt.tag.name }}</a>
+                                {% empty %}
                                 {% endfor %}
                             </div>
                         </div>
@@ -52,8 +53,6 @@
 const params = new URLSearchParams(location.search);
 const current = (params.get('tag') || '').trim();
 document.getElementById('tagTitle').textContent = current || 'all';
-
-// Обновление title
 if (!current) document.title = 'All tags • OlegOverFlow';
 else document.title = `Tag: ${current} • OlegOverFlow`;
 </script>
