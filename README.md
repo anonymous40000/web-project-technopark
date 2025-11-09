@@ -25,6 +25,7 @@
 - **Бэкенд**: Django 5.2
 - **Фронтенд**: HTML, CSS, JavaScript
 - **База данных**: SQLite (разработка)
+- **Ссылка на проектирование моделей данных**: https://dbdocs.io/eurser/designing-database-models?table=UserProfile&schema=public&view=table_structure
 
 ## Установка
 
