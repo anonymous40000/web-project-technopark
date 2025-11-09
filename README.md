@@ -28,7 +28,6 @@
 - **База данных**: PostgreSQL
 - **Ссылка на проектирование моделей данных**: https://dbdocs.io/eurser/designing-database-models?table=UserProfile&schema=public&view=table_structure (включать надо с VPN)
 
-## Установка
 ## Быстрый старт (Docker)
 
 Требуется установленный Docker и Docker Compose plugin.
