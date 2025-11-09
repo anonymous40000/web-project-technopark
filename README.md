@@ -25,7 +25,7 @@
 
 - **Бэкенд**: Django 5.2
 - **Фронтенд**: HTML, CSS, JavaScript
-- **База данных**: SQLite (разработка)
+- **База данных**: PostgreSQL
 - **Ссылка на проектирование моделей данных**: https://dbdocs.io/eurser/designing-database-models?table=UserProfile&schema=public&view=table_structure (включать надо с VPN)
 
 ## Установка
