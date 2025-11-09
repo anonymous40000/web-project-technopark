@@ -17,14 +17,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
-
-
-from questions.views import index
 from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', index, name="index"),
-    path('questions/', include('questions.urls', namespace='questions')),
-    path('auth/', include('core.urls')),
+    path('', include('questions.urls')), 
+    path('auth/', include(('core.urls', 'core'), namespace='core')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

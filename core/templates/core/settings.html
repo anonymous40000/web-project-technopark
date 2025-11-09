@@ -5,39 +5,46 @@
 
 {% block main %}
 <div class="main-wrapper">
-    <div class="main-container">
-        <main class="main-content">
-            <form class="form" method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                <h2 class="form__title">Profile Settings</h2>
-                
-                <div class="form__group">
-                    <label class="form__label" for="username">Username</label>
-                    <input class="form__input" type="text" id="username" name="username" value="CurrentUser" required>
-                </div>
+  <div class="main-container">
+    <main class="main-content">
+      <form class="form" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
 
-                <div class="form__group">
-                    <label class="form__label" for="email">Email</label>
-                    <input class="form__input" type="email" id="email" name="email" value="user@example.com" required>
-                </div>
+        {% if messages %}
+          <ul class="form__messages">
+            {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+          </ul>
+        {% endif %}
 
-                <div class="form__group">
-                    <label class="form__label" for="avatar">Profile Picture</label>
-                    <input class="form__file" type="file" id="avatar" name="avatar" accept="image/*">
-                    <div class="form__help">Upload your profile picture (JPG, PNG, max 2MB)</div>
-                </div>
+        <h2 class="form__title">Profile Settings</h2>
 
-                <div class="form__group">
-                    <label class="form__label" for="bio">Bio</label>
-                    <textarea class="form__textarea" id="bio" name="bio" placeholder="Tell about yourself...">I'm a passionate developer interested in web technologies.</textarea>
-                </div>
+        <div class="form__group">
+          <label class="form__label" for="username">Username</label>
+          <input class="form__input" type="text" id="username" name="username" value="{{ profile.username|default:'' }}" required>
+        </div>
 
-                <div class="form__actions">
-                    <button class="btn btn--primary" type="submit">Save Changes</button>
-                    <a href="{% url 'index' %}" class="btn btn--secondary">Cancel</a>
-                </div>
-            </form>
-        </main>
-    </div>
+        <div class="form__group">
+          <label class="form__label" for="email">Email</label>
+          <input class="form__input" type="email" id="email" name="email" value="{{ profile.email|default:'' }}" required>
+        </div>
+
+        <div class="form__group">
+          <label class="form__label" for="avatar">Profile Picture</label>
+          <input class="form__file" type="file" id="avatar" name="avatar" accept="image/*">
+          <div class="form__help">Upload your profile picture (JPG, PNG, max 2MB)</div>
+        </div>
+
+        <div class="form__group">
+          <label class="form__label" for="bio">Bio</label>
+          <textarea class="form__textarea" id="bio" name="bio" placeholder="Tell about yourself...">{{ profile.bio|default:'' }}</textarea>
+        </div>
+
+        <div class="form__actions">
+          <button class="btn btn--primary" type="submit">Save Changes</button>
+          <a href="{% url 'questions:index' %}" class="btn btn--secondary">Cancel</a>
+        </div>
+      </form>
+    </main>
+  </div>
 </div>
 {% endblock %}

@@ -1,7 +1,7 @@
 {% extends "questions/base.html" %}
 {% load static %}
 
-{% block title %}{{ question.title }} • OlegOverFlow{% endblock %}
+{% block title %}{{ question.name }} • OlegOverFlow{% endblock %}
 
 {% block main %}
 <section class="questions">
@@ -9,18 +9,19 @@
         <div class="question__root">
             <div class="question__aside">
                 <img src="{% static 'questions/img/portrait.jpg' %}" alt="pic" class="question__image">
-                <input class="question__votes" type="number" value="{{ question.votes }}">
+                <input class="question__votes" type="number" value="{{ question.rating }}">
             </div>
             <div class="question__content">
-                <h1 class="question__header question__header--big">{{ question.title }}</h1>
-                <p class="question__description">{{ question.description }}</p>
+                <h1 class="question__header question__header--big">{{ question.name }}</h1>
+                <p class="question__description">{{ question.text }}</p>
                 <div class="question__footer">
-                    <span>Asked by User</span>
+                    <span>Asked by {{ question.author.username|default:"User" }}</span>
                     <div class="question__tags">
                         <span class="question__subtitle">Tags</span>
                         <div class="question__tags__list">
-                            {% for tag in question.tags %}
-                            <a class="tag" href="{{ tag.url }}">{{ tag.name }}</a>
+                            {% for qt in question.question_tags.all %}
+                            <a class="tag" href="{% url 'questions:tag' %}?tag={{ qt.tag.name }}">{{ qt.tag.name }}</a>
+                            {% empty %}
                             {% endfor %}
                         </div>
                     </div>
@@ -28,36 +29,46 @@
             </div>
         </div>
 
-        <h3 class="answers__title">Answers ({{ question.answers_count }})</h3>
+        <h3 class="answers__title">Answers ({{ question.answers.count }})</h3>
 
-        {% for answer in question.answers %}
+        {% for answer in question.answers.all %}
         <div class="answer__root {% if answer.is_correct %}answer__root--correct{% endif %}">
             <div class="answer__aside">
                 <img src="{% static 'questions/img/portrait.jpg' %}" alt="pic" class="answer__image">
-                <input class="answer__votes" type="number" value="{{ answer.votes }}">
+                <input class="answer__votes" type="number" value="{{ answer.rating }}">
             </div>
             <div class="answer__content">
                 <p class="answer__text">{{ answer.text }}</p>
+
                 {% if answer.is_correct %}
                 <div class="answer__correct">✓ Correct Answer</div>
                 {% endif %}
+
                 <div class="answer__meta">
-                    <span class="answer__author">{{ answer.author }}</span>
-                    <span class="answer__date">{{ answer.created_at }}</span>
+                    <span class="answer__author">{{ answer.author.username|default:"User" }}</span>
+                    <span class="answer__date">{{ answer.created }}</span>
+                </div>
+
+                <div class="answer__actions">
+                    {% if answer.is_correct %}
+                        <form action="{% url 'questions:unmark_answer_correct' question.id answer.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit" class="btn">Снять отметку правильного</button>
+                        </form>
+                    {% else %}
+                        <form action="{% url 'questions:mark_answer_correct' question.id answer.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit" class="btn btn--primary">Отметить как правильный</button>
+                        </form>
+                    {% endif %}
                 </div>
             </div>
         </div>
+        {% empty %}
+        <div class="question__root"><div class="question__content"><p>No answers yet.</p></div></div>
         {% endfor %}
-
-        {% if question.answers_count > 5 %}
-        <div class="questions__pagination">
-            <a href="#" class="questions__pagination__item">1</a>
-            <a href="#" class="questions__pagination__item">2</a>
-            <a href="#" class="questions__pagination__item">3</a>
-            <a href="#" class="questions__pagination__item">...</a>
-            <a href="#" class="questions__pagination__item">10</a>
-        </div>
-        {% endif %}
 
         <form class="form" action="#" method="post">
             {% csrf_token %}
