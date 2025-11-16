@@ -1,0 +1,52 @@
+{% extends "questions/base.html" %}
+
+{% block title %}
+Профиль {{ member.username }} — OlegOverFlow
+{% endblock %}
+
+{% block main %}
+<h1>Профиль {{ member.username }}</h1>
+
+{% if member.profile.profile_pic %}
+  <p>
+    <img src="{{ member.profile.profile_pic.url }}" alt="{{ member.username }}" style="max-width: 150px;">
+  </p>
+{% endif %}
+
+{% if member.profile.bio %}
+  <p><strong>О себе:</strong> {{ member.profile.bio }}</p>
+{% endif %}
+
+<hr>
+
+<h2>Вопросы ({{ questions|length }})</h2>
+{% if questions %}
+  <ul>
+    {% for q in questions %}
+      <li>
+        <a href="{{ q.get_absolute_url }}">{{ q.name }}</a>
+        (рейтинг: {{ q.rating }})
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Этот пользователь ещё не задавал вопросов.</p>
+{% endif %}
+
+<hr>
+
+<h2>Ответы ({{ answers|length }})</h2>
+{% if answers %}
+  <ul>
+    {% for a in answers %}
+      <li>
+        В вопросе <a href="{{ a.question.get_absolute_url }}">{{ a.question.name }}</a>:<br>
+        {{ a.text|truncatechars:200 }}
+        (рейтинг ответа: {{ a.rating }})
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Этот пользователь ещё не отвечал на вопросы.</p>
+{% endif %}
+{% endblock %}
