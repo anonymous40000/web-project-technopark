@@ -17,7 +17,7 @@ class QuestionTagInline(admin.TabularInline):
 
 class QuestionLikeInline(admin.TabularInline):
     model = QuestionLike
-    extra = 0  
+    extra = 0
     fields = ('user', 'is_liked', 'value', 'created')
     readonly_fields = ('created',)
 

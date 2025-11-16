@@ -1,12 +1,12 @@
-
-
 services:
   db:
     image: postgres:16
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-olegoverflow}
-      POSTGRES_USER: ${POSTGRES_USER:-ondaandar}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ondaandar}
+      POSTGRES_DB: ${DB_NAME:-olegoverflow}
+      POSTGRES_USER: ${DB_USER:-ondaandar}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-MySecurePass2025!}
     ports:
       - "5432:5432"
     volumes:
@@ -17,6 +17,18 @@ services:
       timeout: 5s
       retries: 12
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
   web:
     build:
       context: .
@@ -24,13 +36,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - .env
     environment:
-      DJANGO_SETTINGS_MODULE: project.settings
-      DATABASE_URL: postgres://${POSTGRES_USER:-ondaandar}:${POSTGRES_PASSWORD:-MySecurePass2025!}@db:5432/${POSTGRES_DB:-olegoverflow}
-      FILL_RATIO: ${FILL_RATIO:-}
-      DEBUG: "1"
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-project.settings}
+      DEBUG: "${DEBUG:-1}"
       COLLECT_STATIC: "0"
     ports:
       - "8000:8000"
@@ -40,3 +52,4 @@ services:
 
 volumes:
   pgdata:
+  redisdata:

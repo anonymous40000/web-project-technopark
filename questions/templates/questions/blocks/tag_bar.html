@@ -12,9 +12,17 @@
     <div class="aside__members">
         <span class="aside__subtitle">Best Members</span>
         <div class="aside__members__list">
-            {% for member in best_members %}
-            <a href="#">{{ member }}</a>
-            {% endfor %}
+        {% for member in best_members %}
+            <div class="aside__member">
+                <a href="{% url 'core:member_detail' member.pk %}">
+                    {{ member.profile.username|default:member.username }}
+                </a>
+            </div>
+        {% empty %}
+            <div class="aside__member">
+                No active members yet.
+            </div>
+        {% endfor %}
         </div>
     </div>
 </aside>
