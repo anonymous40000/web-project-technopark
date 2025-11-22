@@ -12,25 +12,61 @@
   <form class="form" action="" method="post">
     {% csrf_token %}
 
+    {% if request.GET.next %}
+      <input type="hidden" name="next" value="{{ request.GET.next }}">
+    {% endif %}
+
     {% if messages %}
       <ul class="form__messages">
-        {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+        {% for m in messages %}
+          {% if m.tags != 'success' %}
+            <li class="message-{{ m.tags }}">{{ m }}</li>
+          {% endif %}
+        {% endfor %}
       </ul>
     {% endif %}
 
-    <div class="form__group">
-      <label class="form__label" for="login">Login</label>
-      <input class="form__input" id="login" name="username" type="text" maxlength="30" placeholder="Enter your login here" required>
-    </div>
-    <div class="form__group">
-      <label class="form__label" for="password">Password</label>
-      <input class="form__input" id="password" name="password" type="password" maxlength="64" placeholder="Enter your password here" required>
-    </div>
+    {% if form.non_field_errors %}
+      <div class="form__errors">
+        {% for error in form.non_field_errors %}
+          <div class="error">{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
 
-    <div class="form__actions">
-      <button class="btn btn--primary" type="submit">Log in!</button>
-      <a class="btn btn--secondary" href="{% url 'core:register' %}">create new account</a>
-    </div>
+    {% if not user.is_authenticated %}
+      <div class="form__group">
+        <label class="form__label" for="{{ form.login.id_for_label }}">{{ form.login.label }}</label>
+        {{ form.login }}
+        {% if form.login.help_text %}
+          <div class="form__help">{{ form.login.help_text }}</div>
+        {% endif %}
+        {% if form.login.errors %}
+          <div class="form__errors">{{ form.login.errors }}</div>
+        {% endif %}
+      </div>
+
+      <div class="form__group">
+        <label class="form__label" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+        {{ form.password }}
+        {% if form.password.help_text %}
+          <div class="form__help">{{ form.password.help_text }}</div>
+        {% endif %}
+        {% if form.password.errors %}
+          <div class="form__errors">{{ form.password.errors }}</div>
+        {% endif %}
+      </div>
+
+      <div class="form__actions">
+        <button class="btn btn--primary" type="submit">Log in!</button>
+        <a class="btn btn--secondary" href="{% url 'core:register' %}">create new account</a>
+      </div>
+    {% else %}
+      <div class="form__group">
+        <p>Вы уже авторизованы как <strong>{{ user.username }}</strong>.</p>
+        <p><a href="{% url 'questions:index' %}">Перейти на главную</a> или <a href="{% url 'core:logout' %}">выйти</a>.</p>
+      </div>
+    {% endif %}
   </form>
 </section>
 {% endblock %}

@@ -10,13 +10,26 @@
       <input type="text" class="header__search" placeholder="Search...">
       <a class="header__ask-btn" href="{% url 'questions:ask' %}">ASK!</a>
     </div>
-    <div class="header__profile">
-      <img src="{% static 'questions/img/portrait.jpg' %}" alt="pic" class="header__profile__image">
-      <div class="header__profile__user">
-        <span class="header__profile__username">
-          <a href="{% url 'core:settings' %}">User</a>
-        </span>
+    
+    {% if user.is_authenticated %}
+      <div class="header__profile">
+        <img src="{% static 'questions/img/portrait.jpg' %}" alt="pic" class="header__profile__image">
+        <div class="header__profile__user">
+          <span class="header__profile__username">
+            <a href="{% url 'core:settings' %}">{{ user.username }}</a>
+          </span>
+          <form action="{% url 'core:logout' %}" method="post" style="display: inline;">
+              {% csrf_token %}
+              <button type="submit" class="header__logout-btn">Logout</button>
+          </form>
+          </form>
+        </div>
       </div>
-    </div>
+    {% else %}
+      <div class="header__auth">
+        <a class="header__login" href="{% url 'core:login' %}">Log in</a>
+        <a class="header__register" href="{% url 'core:register' %}">Register</a>
+      </div>
+    {% endif %}
   </div>
 </header>

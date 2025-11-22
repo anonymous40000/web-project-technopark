@@ -1,12 +1,13 @@
 from django.core.cache import cache
 from django.contrib import messages
-from django.contrib.auth import get_user_model, authenticate, login
+from django.contrib.auth import get_user_model,login
 from django.db.models import Count
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
+from django.contrib.auth import logout
 
-from core.models import UserProfile
 from questions.models import Tag, Question, Answer
+from .forms import LoginForm, RegistrationForm, SettingsForm
 
 User = get_user_model()
 
@@ -57,57 +58,48 @@ def sidebar_ctx():
             'best_members': User.objects.select_related('profile').filter(is_active=True)[:5],
         }
 
+def logout_view(request):
+    logout(request)
+    return redirect('questions:index')
+
 
 def login_view(request, *args, **kwargs):
+    if request.user.is_authenticated:
+        return redirect('questions:index')
+
     if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        password = request.POST.get('password', '')
-        user = authenticate(request, username=username, password=password)
-
-        if user is not None:
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            user = form.cleaned_data['user']
             login(request, user)
-            next_url = request.GET.get('next') or reverse('questions:index')
+            next_url = request.POST.get('next') or reverse('questions:index')
+            messages.success(request, f'Добро пожаловать, {user.username}!')
             return redirect(next_url)
+    else:
+        form = LoginForm()
 
-        messages.error(request, 'Invalid login or password.')
-
-    ctx = {}
+    ctx = {'form': form}
     ctx.update(sidebar_ctx())
     return render(request, 'core/login.html', ctx)
 
 
 def register_view(request, *args, **kwargs):
+    if request.user.is_authenticated:
+        return redirect('questions:index')
+
     if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        email = request.POST.get('email', '').strip()
-        password1 = request.POST.get('password1', '')
-        password2 = request.POST.get('password2', '')
-        nickname = request.POST.get('nickname', '').strip()
-        avatar = request.FILES.get('avatar')
-
-        if not username or not password1 or not password2 or password1 != password2:
-            messages.error(request, 'Please check username and passwords.')
-        elif User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already taken.')
-        else:
-            user = User.objects.create_user(
-                username=username,
-                email=email,
-                password=password1,
-            )
-            if nickname:
-                user.first_name = nickname
-            user.save()
-
-            profile, _ = UserProfile.objects.get_or_create(user=user)
-            if avatar:
-                profile.profile_pic = avatar
-                profile.save()
-
+        form = RegistrationForm(request.POST, request.FILES)
+        if form.is_valid():
+            user = form.save()
             login(request, user)
+            messages.success(request, f'Аккаунт успешно создан! Добро пожаловать, {user.username}!')
             return redirect('questions:index')
+    else:
+        form = RegistrationForm()
 
-    ctx = {}
+    ctx = {
+        'form': form,
+    }
     ctx.update(sidebar_ctx())
     return render(request, 'core/register.html', ctx)
 
@@ -117,32 +109,17 @@ def settings_view(request, *args, **kwargs):
         messages.error(request, 'Нужно войти, чтобы сохранять настройки.')
         return redirect('core:login')
 
-    user = request.user
-    profile, _ = UserProfile.objects.get_or_create(user=user)
-
     if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        email = request.POST.get('email', '').strip()
-        bio = request.POST.get('bio', '').strip()
-        avatar = request.FILES.get('avatar')
-
-        if username:
-            user.username = username
-        if email:
-            user.email = email
-        user.save()
-
-        profile.bio = bio
-        if avatar:
-            profile.profile_pic = avatar
-        profile.save()
-
-        messages.success(request, 'Profile updated.')
-        return redirect('core:settings')
+        form = SettingsForm(request.POST, request.FILES, instance=request.user.profile, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Настройки успешно обновлены!')
+            return redirect('core:settings')
+    else:
+        form = SettingsForm(instance=request.user.profile, user=request.user)
 
     ctx = {
-        'profile': profile,
-        'user_obj': user,
+        'form': form,
     }
     ctx.update(sidebar_ctx())
     return render(request, 'core/settings.html', ctx)
