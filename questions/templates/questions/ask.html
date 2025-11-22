@@ -10,25 +10,54 @@
                 <h2>New Question</h2>
             </div>
 
-            <form class="form" action="#" method="post">
-                <div class="form__error">Title is required. Text must be at least 20 characters.</div>
+            <form class="form" action="" method="post">
+                {% csrf_token %}
+
+                {% if messages %}
+                  <ul class="form__messages">
+                    {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+                  </ul>
+                {% endif %}
+
+                {% if form.non_field_errors %}
+                  <div class="form__errors">
+                    {% for error in form.non_field_errors %}
+                      <div class="error">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
 
                 <div class="form__group">
-                    <label class="form__label" for="title">Title</label>
-                    <input class="form__input" id="title" name="title" type="text" placeholder="How to build a moon park?" maxlength="150" required>
-                    <div class="form__help">Max 150 characters</div>
+                    <label class="form__label" for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {% if form.name.help_text %}
+                        <div class="form__help">{{ form.name.help_text }}</div>
+                    {% endif %}
+                    {% if form.name.errors %}
+                        <div class="form__errors">{{ form.name.errors }}</div>
+                    {% endif %}
                 </div>
 
                 <div class="form__group">
-                    <label class="form__label" for="text">Text</label>
-                    <textarea class="form__textarea" id="text" name="text" placeholder="Describe your problem in detail" maxlength="10000" required></textarea>
-                    <div class="form__help">Add details, steps, expected and actual result</div>
+                    <label class="form__label" for="{{ form.text.id_for_label }}">{{ form.text.label }}</label>
+                    {{ form.text }}
+                    {% if form.text.help_text %}
+                        <div class="form__help">{{ form.text.help_text }}</div>
+                    {% endif %}
+                    {% if form.text.errors %}
+                        <div class="form__errors">{{ form.text.errors }}</div>
+                    {% endif %}
                 </div>
 
                 <div class="form__group">
-                    <label class="form__label" for="tags">Tags</label>
-                    <input class="form__input" id="tags" name="tags" type="text" placeholder="moon, park, puzzle" maxlength="250" required>
-                    <div class="form__help">Comma separated</div>
+                    <label class="form__label" for="{{ form.tags_input.id_for_label }}">{{ form.tags_input.label }}</label>
+                    {{ form.tags_input }}
+                    {% if form.tags_input.help_text %}
+                        <div class="form__help">{{ form.tags_input.help_text }}</div>
+                    {% endif %}
+                    {% if form.tags_input.errors %}
+                        <div class="form__errors">{{ form.tags_input.errors }}</div>
+                    {% endif %}
                 </div>
 
                 <div class="form__actions">

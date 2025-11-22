@@ -32,7 +32,7 @@
         <h3 class="answers__title">Answers ({{ question.answers.count }})</h3>
 
         {% for answer in question.answers.all %}
-        <div class="answer__root {% if answer.is_correct %}answer__root--correct{% endif %}">
+        <div id="answer-{{ answer.id }}" class="answer__root {% if answer.is_correct %}answer__root--correct{% endif %}">
             <div class="answer__aside">
                 <img src="{% static 'questions/img/portrait.jpg' %}" alt="pic" class="answer__image">
                 <input class="answer__votes" type="number" value="{{ answer.rating }}">
@@ -70,11 +70,32 @@
         <div class="question__root"><div class="question__content"><p>No answers yet.</p></div></div>
         {% endfor %}
 
-        <form class="form" action="#" method="post">
+        <form class="form" action="" method="post">
             {% csrf_token %}
+
+            {% if messages %}
+              <ul class="form__messages">
+                {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+              </ul>
+            {% endif %}
+
+            {% if form.non_field_errors %}
+              <div class="form__errors">
+                {% for error in form.non_field_errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
             <div class="form__group">
-                <label class="form__label" for="answer">Enter your answer here.</label>
-                <textarea class="form__textarea" id="answer" name="answer" maxlength="10000" required></textarea>
+                <label class="form__label" for="{{ form.text.id_for_label }}">{{ form.text.label }}</label>
+                {{ form.text }}
+                {% if form.text.help_text %}
+                    <div class="form__help">{{ form.text.help_text }}</div>
+                {% endif %}
+                {% if form.text.errors %}
+                    <div class="form__errors">{{ form.text.errors }}</div>
+                {% endif %}
             </div>
             <div class="form__actions">
                 <button class="btn btn--primary" type="submit">Answer</button>

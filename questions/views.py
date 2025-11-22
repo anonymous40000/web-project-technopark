@@ -1,4 +1,5 @@
 import importlib
+from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
@@ -7,6 +8,7 @@ from django.core.cache import cache
 
 from .models import Question, Answer
 from core.views import sidebar_ctx
+from .forms import AskForm, AnswerForm
 
 
 User = None
@@ -18,50 +20,24 @@ User = auth_module.get_user_model()
 def paginate(objects_list, request, per_page=10, cache_timeout=30):
     page_number = request.GET.get('page', 1)
 
-    if hasattr(objects_list, 'model'):
-        cache_key = f"paginate_{objects_list.model._meta.db_table}_{page_number}_{per_page}_{hash(str(objects_list.query))}"
-        cached_page = cache.get(cache_key)
-
-        if cached_page:
-            return cached_page
-
+    cache_key = f"paginate_ids_{objects_list.model._meta.db_table}_{per_page}_{hash(str(objects_list.query))}"
+    id_list = cache.get(cache_key)
+    if id_list is None:
         id_list = list(objects_list.values_list('id', flat=True))
-        paginator = Paginator(id_list, per_page)
+        cache.set(cache_key, id_list, cache_timeout)
 
-        try:
-            page = paginator.page(page_number)
-        except PageNotAnInteger:
-            page = paginator.page(1)
-        except EmptyPage:
-            page = paginator.page(paginator.num_pages)
-
-        current_ids = page.object_list
-        page_objects = objects_list.model.objects.filter(id__in=current_ids)
-
-        if hasattr(objects_list, '_prefetch_related_lookups'):
-            page_objects = page_objects.prefetch_related(*objects_list._prefetch_related_lookups)
-        if hasattr(objects_list, '_select_related'):
-            page_objects = page_objects.select_related(*objects_list._select_related)
-        if hasattr(objects_list, '_annotations'):
-            for alias, annotation in objects_list._annotations.items():
-                page_objects = page_objects.annotate(**{alias: annotation})
-
-        page.object_list = page_objects.order_by('-created')
-        page.paginator.count = len(id_list)
-
-        cache.set(cache_key, page, cache_timeout)
-
-        return page
-
-    paginator = Paginator(objects_list, per_page)
+    paginator = Paginator(id_list, per_page)
     try:
         page = paginator.page(page_number)
     except PageNotAnInteger:
         page = paginator.page(1)
     except EmptyPage:
         page = paginator.page(paginator.num_pages)
-    return page
 
+    page_objects = objects_list.filter(id__in=page.object_list)
+
+    page.object_list = page_objects
+    return page
 
 def index(request, *args, **kwargs):
     tag_name = request.GET.get('tag')
@@ -94,16 +70,50 @@ def question_detail(request, question_id):
         question = get_object_or_404(Question.objects.detail_qs(), pk=question_id)
         cache.set(cache_key, question, 60)
 
+    if request.method == 'POST':
+        if not request.user.is_authenticated:
+            messages.error(request, 'Нужно войти, чтобы отвечать.')
+            return redirect('core:login')
+
+        form = AnswerForm(request.POST)
+        if form.is_valid():
+            answer = form.save(commit=False)
+            answer.question = question
+            answer.author = request.user
+            answer.save()
+            cache.delete(cache_key)
+            messages.success(request, 'Ваш ответ добавлен!')
+
+            url = reverse('questions:question_detail', kwargs={'question_id': question.id}) + f'#answer-{answer.id}'
+            return redirect(url)
+    else:
+        form = AnswerForm()
+
     return render(request, 'questions/question.html', {
         'question': question,
+        'form': form,
         **sidebar_ctx(),
     })
+
 
 
 def ask_view(request, *args, **kwargs):
-    return render(request, 'questions/ask.html', {
-        **sidebar_ctx(),
-    })
+    if not request.user.is_authenticated:
+        messages.error(request, 'Нужно войти, чтобы задавать вопросы.')
+        return redirect('core:login')
+
+    if request.method == 'POST':
+        form = AskForm(request.POST)
+        if form.is_valid():
+            question = form.save(commit=True, author=request.user)
+            messages.success(request, 'Вопрос успешно создан!')
+            return redirect('questions:question_detail', question_id=question.pk)
+    else:
+        form = AskForm()
+
+    ctx = {'form': form}
+    ctx.update(sidebar_ctx())
+    return render(request, 'questions/ask.html', ctx)
 
 
 def hot_questions(request):

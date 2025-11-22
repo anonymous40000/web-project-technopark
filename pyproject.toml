@@ -1,0 +1,11 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+lint.select = ["E", "F", "W"]
+lint.ignore = [
+    "E203", 
+    "E501", 
+]
+
+src = ["core", "questions", "project"]
