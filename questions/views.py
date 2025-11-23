@@ -5,6 +5,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.core.cache import cache
+from django.db.models import Q, Count
 
 from .models import Question, Answer
 from core.views import sidebar_ctx
@@ -40,13 +41,29 @@ def paginate(objects_list, request, per_page=10, cache_timeout=30):
     return page
 
 def index(request, *args, **kwargs):
-    tag_name = request.GET.get('tag')
-    qs = Question.objects.by_tag(tag_name) if tag_name else Question.objects.newest_full()
+    search_query = request.GET.get('q', '').strip()
+    tag_name = request.GET.get('tag', '').strip() if not search_query else None
+
+    base_qs = Question.objects.detail_qs().annotate(
+        answers_count=Count('answers')
+    )
+
+    if search_query:
+        qs = base_qs.filter(
+            Q(name__icontains=search_query) | Q(text__icontains=search_query)
+        )
+        page_title = f'Search: "{search_query}"'
+    elif tag_name:
+        qs = Question.objects.by_tag(tag_name)
+        page_title = f'Tag: {tag_name}'
+    else:
+        qs = Question.objects.newest_full()
+        page_title = "New Questions"
+
     page = paginate(qs, request, per_page=4)
     return render(request, 'questions/index.html', {
         "questions": page,
-        "tag_name": tag_name,
-        "page_title": "New Questions",
+        "page_title": page_title,
         **sidebar_ctx(),
     })
 
