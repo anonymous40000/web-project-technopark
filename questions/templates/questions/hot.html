@@ -31,6 +31,7 @@
                                 {% for qt in q.question_tags.all %}
                                 <a class="tag" href="{% url 'questions:tag' %}?tag={{ qt.tag.name }}">{{ qt.tag.name }}</a>
                                 {% empty %}
+                                    <span>No tags</span>
                                 {% endfor %}
                             </div>
                         </div>

@@ -699,9 +699,8 @@ img { border-radius: 3px; }
 
 .header__profile__user {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  align-items: center;
+  gap: 12px;
 }
 
 .header__profile__username a {
@@ -712,24 +711,6 @@ img { border-radius: 3px; }
 
 .header__profile__username a:hover {
   color: #0a95ff;
-}
-
-.header__logout {
-  background: #dc3545;
-  color: white;
-  border: 1px solid #dc3545;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  padding: 4px 8px;
-  text-decoration: none;
-  transition: background-color 0.2s;
-}
-
-.header__logout:hover {
-  background: #c82333;
-  border-color: #c82333;
-  color: white;
 }
 
 .header__auth {
@@ -778,20 +759,60 @@ img { border-radius: 3px; }
   font-weight: 600;
 }
 
-.header__logout-btn {
-    background: #dc3545;
+.header__search-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex: 1;
+    max-width: 520px;
+    justify-content: center;
+}
+
+.header__search {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #babfc4;
+    border-radius: 4px;
+    max-width: 420px;
+}
+
+.header__ask-btn {
+    background-color: #0a9500;
     color: white;
-    border: 1px solid #dc3545;
+    border: none;
+    padding: 8px 16px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 6px 12px;
-    transition: all 0.2s;
+    font-weight: bold;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+}
+
+.header__logout-btn {
+    background-color: #dc3545 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 4px !important;
+    padding: 8px 16px !important;
+    font-weight: bold !important;
+    font-size: 14px !important;
+    height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-family: Arial, sans-serif !important;
+    cursor: pointer !important;
+    outline: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    text-decoration: none !important;
+    box-sizing: border-box !important;
 }
 
 .header__logout-btn:hover {
-    background: #c82333;
-    border-color: #c82333;
-    transform: translateY(-1px);
+    background-color: #c82333 !important;
 }
