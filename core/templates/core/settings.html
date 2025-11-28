@@ -60,13 +60,15 @@
         </div>
 
         <div class="form__group">
-          <label class="form__label" for="{{ form.avatar.id_for_label }}">{{ form.avatar.label }}</label>
-          {{ form.avatar }}
-          {% if form.avatar.help_text %}
-            <div class="form__help">{{ form.avatar.help_text }}</div>
+          <label class="form__label" for="{{ form.profile_pic.id_for_label }}">
+            {{ form.profile_pic.label }}
+          </label>
+          {{ form.profile_pic }}
+          {% if form.profile_pic.help_text %}
+            <div class="form__help">{{ form.profile_pic.help_text }}</div>
           {% endif %}
-          {% if form.avatar.errors %}
-            <div class="form__errors">{{ form.avatar.errors }}</div>
+          {% if form.profile_pic.errors %}
+            <div class="form__errors">{{ form.profile_pic.errors }}</div>
           {% endif %}
         </div>
 

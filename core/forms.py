@@ -5,18 +5,14 @@ from django.contrib.auth.forms import UserCreationForm
 from .models import UserProfile
 
 class RegistrationForm(UserCreationForm):
-    email = forms.EmailField(required=True, label="Email", help_text="Введите действующий email")
+    email = forms.EmailField(required=True, label="Email")
     avatar = forms.ImageField(required=False, label="Аватар профиля")
 
     class Meta:
         model = User
         fields = ['username', 'email', 'password1', 'password2']
-        labels = {
-            'username': 'Логин',
-        }
-        help_texts = {
-            'username': 'Придумайте уникальный логин',
-        }
+        labels = {'username': 'Логин'}
+        help_texts = {'username': 'Придумайте уникальный логин'}
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -30,15 +26,13 @@ class RegistrationForm(UserCreationForm):
 
         if commit:
             user.save()
-            try:
-                UserProfile.objects.create(
-                    user=user,
-                    profile_pic=self.cleaned_data.get('avatar')
-                )
-            except Exception as e:
-                print("ERROR creating UserProfile:", e)
-                raise
+            avatar_file = self.files.get('avatar')
+            UserProfile.objects.create(
+                user=user,
+                profile_pic=avatar_file
+            )
         return user
+
 
 
 class LoginForm(forms.Form):
@@ -70,8 +64,8 @@ class LoginForm(forms.Form):
 
 
 class SettingsForm(forms.ModelForm):
-    username = forms.CharField(max_length=255, label="Имя пользователя")
-    email = forms.EmailField(label="Email")
+    username = forms.CharField(max_length=255, label="Имя пользователя", required=True)
+    email = forms.EmailField(label="Email", required=True)
 
     class Meta:
         model = UserProfile
@@ -94,26 +88,26 @@ class SettingsForm(forms.ModelForm):
 
     def clean_username(self):
         username = self.cleaned_data.get('username')
-        if (self.user and
-            User.objects.filter(username=username).exclude(pk=self.user.pk).exists()):
+        if self.user and User.objects.filter(username=username).exclude(pk=self.user.pk).exists():
             raise forms.ValidationError("Пользователь с таким именем уже существует")
         return username
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
-        if (self.user and
-            User.objects.filter(email=email).exclude(pk=self.user.pk).exists()):
+        if self.user and User.objects.filter(email=email).exclude(pk=self.user.pk).exists():
             raise forms.ValidationError("Пользователь с таким email уже существует")
         return email
 
     def save(self, commit=True):
+        profile = super().save(commit=False)
+
         if self.user:
             self.user.username = self.cleaned_data['username']
             self.user.email = self.cleaned_data['email']
             if commit:
                 self.user.save()
 
-        profile = super().save(commit=False)
         if commit:
             profile.save()
         return profile
+
