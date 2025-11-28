@@ -18,29 +18,68 @@
       </ul>
     {% endif %}
 
+    {% if form.non_field_errors %}
+      <div class="form__errors">
+        {% for error in form.non_field_errors %}
+          <div class="error">{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="form__group"> 
+      <label class="form__label" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+      {{ form.username }}
+      {% if form.username.help_text %}
+        <div class="form__help">{{ form.username.help_text }}</div>
+      {% endif %}
+      {% if form.username.errors %}
+        <div class="form__errors">{{ form.username.errors }}</div>
+      {% endif %}
+    </div>
+
+
     <div class="form__group">
-      <label class="form__label" for="login">Login</label>
-      <input class="form__input" id="login" name="username" type="text" maxlength="30" required>
+      <label class="form__label" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+      {{ form.email }}
+      {% if form.email.help_text %}
+        <div class="form__help">{{ form.email.help_text }}</div>
+      {% endif %}
+      {% if form.email.errors %}
+        <div class="form__errors">{{ form.email.errors }}</div>
+      {% endif %}
     </div>
 
     <div class="form__group">
-      <label class="form__label" for="email">Email</label>
-      <input class="form__input" id="email" name="email" type="email" maxlength="100" required>
+      <label class="form__label" for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
+      {{ form.password1 }}
+      {% if form.password1.help_text %}
+        <div class="form__help">{{ form.password1.help_text }}</div>
+      {% endif %}
+      {% if form.password1.errors %}
+        <div class="form__errors">{{ form.password1.errors }}</div>
+      {% endif %}
     </div>
 
     <div class="form__group">
-      <label class="form__label" for="password">Password</label>
-      <input class="form__input" id="password" name="password1" type="password" maxlength="64" required>
+      <label class="form__label" for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
+      {{ form.password2 }}
+      {% if form.password2.help_text %}
+        <div class="form__help">{{ form.password2.help_text }}</div>
+      {% endif %}
+      {% if form.password2.errors %}
+        <div class="form__errors">{{ form.password2.errors }}</div>
+      {% endif %}
     </div>
 
     <div class="form__group">
-      <label class="form__label" for="password2">Repeat password</label>
-      <input class="form__input" id="password2" name="password2" type="password" maxlength="64" required>
-    </div>
-
-    <div class="form__group">
-      <label class="form__label" for="avatar">Upload avatar</label>
-      <input class="form__file" id="avatar" name="avatar" type="file" accept="image/*">
+      <label class="form__label" for="{{ form.avatar.id_for_label }}">{{ form.avatar.label }}</label>
+      {{ form.avatar }}
+      {% if form.avatar.help_text %}
+        <div class="form__help">{{ form.avatar.help_text }}</div>
+      {% endif %}
+      {% if form.avatar.errors %}
+        <div class="form__errors">{{ form.avatar.errors }}</div>
+      {% endif %}
     </div>
 
     <div class="form__actions">

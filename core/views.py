@@ -94,6 +94,7 @@ def register_view(request, *args, **kwargs):
             login(request, user)
             messages.success(request, f'Аккаунт успешно создан! Добро пожаловать, {user.username}!')
             return redirect('questions:index')
+
     else:
         form = RegistrationForm()
 
@@ -102,6 +103,7 @@ def register_view(request, *args, **kwargs):
     }
     ctx.update(sidebar_ctx())
     return render(request, 'core/register.html', ctx)
+
 
 
 def settings_view(request, *args, **kwargs):
