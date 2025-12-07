@@ -9,76 +9,99 @@
     <h2>Registration</h2>
   </div>
 
-  <form class="form" action="" method="post" enctype="multipart/form-data">
+  <form class="form" id="registerForm" action="" method="post" enctype="multipart/form-data">
     {% csrf_token %}
 
-    {% if messages %}
-      <ul class="form__messages">
-        {% for m in messages %}<li>{{ m }}</li>{% endfor %}
-      </ul>
-    {% endif %}
+    <div id="register-global-errors" class="form__errors" style="display:none;"></div>
 
-    {% if form.non_field_errors %}
-      <div class="form__errors">
-        {% for error in form.non_field_errors %}
-          <div class="error">{{ error }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    <div class="form__group"> 
+    <div class="form__group">
       <label class="form__label" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
       {{ form.username }}
+
+      <div class="form__errors" data-error-for="username" style="display:none;"></div>
+
       {% if form.username.help_text %}
         <div class="form__help">{{ form.username.help_text }}</div>
       {% endif %}
       {% if form.username.errors %}
-        <div class="form__errors">{{ form.username.errors }}</div>
+        <div class="form__errors">
+          {% for e in form.username.errors %}
+            <div class="error">{{ e }}</div>
+          {% endfor %}
+        </div>
       {% endif %}
     </div>
-
 
     <div class="form__group">
       <label class="form__label" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
       {{ form.email }}
+
+      <div class="form__errors" data-error-for="email" style="display:none;"></div>
+
       {% if form.email.help_text %}
         <div class="form__help">{{ form.email.help_text }}</div>
       {% endif %}
       {% if form.email.errors %}
-        <div class="form__errors">{{ form.email.errors }}</div>
+        <div class="form__errors">
+          {% for e in form.email.errors %}
+            <div class="error">{{ e }}</div>
+          {% endfor %}
+        </div>
       {% endif %}
     </div>
 
     <div class="form__group">
       <label class="form__label" for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
       {{ form.password1 }}
+
+      <div class="form__errors" data-error-for="password1" style="display:none;"></div>
+
       {% if form.password1.help_text %}
         <div class="form__help">{{ form.password1.help_text }}</div>
       {% endif %}
       {% if form.password1.errors %}
-        <div class="form__errors">{{ form.password1.errors }}</div>
+        <div class="form__errors">
+          {% for e in form.password1.errors %}
+            <div class="error">{{ e }}</div>
+          {% endfor %}
+        </div>
       {% endif %}
     </div>
 
     <div class="form__group">
       <label class="form__label" for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
       {{ form.password2 }}
+
+      <div class="form__errors" data-error-for="password2" style="display:none;"></div>
+
       {% if form.password2.help_text %}
         <div class="form__help">{{ form.password2.help_text }}</div>
       {% endif %}
       {% if form.password2.errors %}
-        <div class="form__errors">{{ form.password2.errors }}</div>
+        <div class="form__errors">
+          {% for e in form.password2.errors %}
+            <div class="error">{{ e }}</div>
+          {% endfor %}
+        </div>
       {% endif %}
     </div>
 
     <div class="form__group">
       <label class="form__label" for="{{ form.avatar.id_for_label }}">{{ form.avatar.label }}</label>
+
       {{ form.avatar }}
+
+      <div class="form__errors" data-error-for="avatar" style="display:none;"></div>
+
       {% if form.avatar.help_text %}
         <div class="form__help">{{ form.avatar.help_text }}</div>
       {% endif %}
       {% if form.avatar.errors %}
-        <div class="form__errors">{{ form.avatar.errors }}</div>
+        <div class="form__errors">
+          {% for e in form.avatar.errors %}
+            <div class="error">{{ e }}</div>
+          {% endfor %}
+        </div>
       {% endif %}
     </div>
 
@@ -87,4 +110,80 @@
     </div>
   </form>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('registerForm');
+    const headerAvatar = document.querySelector('.header__profile__image');
+    const headerUsername = document.querySelector('.header__profile__username a');
+
+    function clearErrors() {
+        const all = document.querySelectorAll('#register-global-errors, .form__errors[data-error-for]');
+        all.forEach(el => {
+            el.style.display = 'none';
+            el.innerHTML = '';
+        });
+    }
+
+    function showErrors(errors) {
+        for (const [field, msgs] of Object.entries(errors)) {
+            const container = document.querySelector(`.form__errors[data-error-for="${field}"]`);
+            if (container) {
+                container.style.display = 'block';
+                container.innerHTML = msgs
+                    .map(m => `<div class="error">${m}</div>`)
+                    .join('');
+            } else {
+                const globalErrors = document.getElementById('register-global-errors');
+                if (globalErrors) {
+                    globalErrors.style.display = 'block';
+                    globalErrors.innerHTML += msgs
+                        .map(m => `<div class="error">${m}</div>`)
+                        .join('');
+                }
+            }
+        }
+    }
+
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            clearErrors();
+
+            const formData = new FormData(form);
+
+            fetch("{% url 'core:register' %}", {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    if (headerUsername && data.username) {
+                        headerUsername.textContent = data.username;
+                    }
+                    if (headerAvatar && data.avatar_url) {
+                        headerAvatar.src = data.avatar_url;
+                    }
+                    window.location.href = data.redirect_url;
+                } else {
+                    if (data.errors) {
+                        showErrors(data.errors);
+                    } else if (data.error) {
+                        alert(data.error);
+                    }
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Произошла ошибка при регистрации.');
+            });
+        });
+    }
+});
+</script>
 {% endblock %}

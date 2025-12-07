@@ -7,55 +7,67 @@
 <div class="main-wrapper">
   <div class="main-container">
     <main class="main-content">
-      <form class="form" method="post" enctype="multipart/form-data">
+      <form class="form" id="settingsForm" method="post" enctype="multipart/form-data">
         {% csrf_token %}
 
-        {% if messages %}
-          <ul class="form__messages">
-            {% for m in messages %}<li>{{ m }}</li>{% endfor %}
-          </ul>
-        {% endif %}
-
-        {% if form.non_field_errors %}
-          <div class="form__errors">
-            {% for error in form.non_field_errors %}
-              <div class="error">{{ error }}</div>
-            {% endfor %}
-          </div>
-        {% endif %}
+        <!-- глобальные ошибки (AJAX) — по умолчанию скрыты -->
+        <div id="settings-global-errors" class="form__errors" style="display:none;"></div>
 
         <h2 class="form__title">Profile Settings</h2>
 
         <div class="form__group">
           <label class="form__label" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
           {{ form.username }}
+
+          <!-- ошибки по полю (AJAX) -->
+          <div class="form__errors" data-error-for="username" style="display:none;"></div>
+
           {% if form.username.help_text %}
             <div class="form__help">{{ form.username.help_text }}</div>
           {% endif %}
           {% if form.username.errors %}
-            <div class="form__errors">{{ form.username.errors }}</div>
+            <!-- серверные ошибки (не AJAX) -->
+            <div class="form__errors">
+              {% for e in form.username.errors %}
+                <div class="error">{{ e }}</div>
+              {% endfor %}
+            </div>
           {% endif %}
         </div>
 
         <div class="form__group">
           <label class="form__label" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
           {{ form.email }}
+
+          <div class="form__errors" data-error-for="email" style="display:none;"></div>
+
           {% if form.email.help_text %}
             <div class="form__help">{{ form.email.help_text }}</div>
           {% endif %}
           {% if form.email.errors %}
-            <div class="form__errors">{{ form.email.errors }}</div>
+            <div class="form__errors">
+              {% for e in form.email.errors %}
+                <div class="error">{{ e }}</div>
+              {% endfor %}
+            </div>
           {% endif %}
         </div>
 
         <div class="form__group">
           <label class="form__label" for="{{ form.bio.id_for_label }}">{{ form.bio.label }}</label>
           {{ form.bio }}
+
+          <div class="form__errors" data-error-for="bio" style="display:none;"></div>
+
           {% if form.bio.help_text %}
             <div class="form__help">{{ form.bio.help_text }}</div>
           {% endif %}
           {% if form.bio.errors %}
-            <div class="form__errors">{{ form.bio.errors }}</div>
+            <div class="form__errors">
+              {% for e in form.bio.errors %}
+                <div class="error">{{ e }}</div>
+              {% endfor %}
+            </div>
           {% endif %}
         </div>
 
@@ -63,12 +75,21 @@
           <label class="form__label" for="{{ form.profile_pic.id_for_label }}">
             {{ form.profile_pic.label }}
           </label>
+
+          {# НИКАКИХ превью, только стандартный ClearableFileInput #}
           {{ form.profile_pic }}
+
+          <div class="form__errors" data-error-for="profile_pic" style="display:none;"></div>
+
           {% if form.profile_pic.help_text %}
             <div class="form__help">{{ form.profile_pic.help_text }}</div>
           {% endif %}
           {% if form.profile_pic.errors %}
-            <div class="form__errors">{{ form.profile_pic.errors }}</div>
+            <div class="form__errors">
+              {% for e in form.profile_pic.errors %}
+                <div class="error">{{ e }}</div>
+              {% endfor %}
+            </div>
           {% endif %}
         </div>
 
@@ -80,4 +101,77 @@
     </main>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('settingsForm');
+    const headerAvatar = document.querySelector('.header__profile__image');
+
+    function clearErrors() {
+        const all = document.querySelectorAll('#settings-global-errors, .form__errors[data-error-for]');
+        all.forEach(el => {
+            el.style.display = 'none';
+            el.innerHTML = '';
+        });
+    }
+
+    function showErrors(errors) {
+        for (const [field, msgs] of Object.entries(errors)) {
+            const container = document.querySelector(`.form__errors[data-error-for="${field}"]`);
+            if (container) {
+                container.style.display = 'block';
+                container.innerHTML = msgs
+                    .map(m => `<div class="error">${m}</div>`)
+                    .join('');
+            } else {
+                const globalErrors = document.getElementById('settings-global-errors');
+                if (globalErrors) {
+                    globalErrors.style.display = 'block';
+                    globalErrors.innerHTML += msgs
+                        .map(m => `<div class="error">${m}</div>`)
+                        .join('');
+                }
+            }
+        }
+    }
+
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            clearErrors();
+
+            const formData = new FormData(form);
+
+            fetch("{% url 'core:settings' %}", {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                // console.log('settings response', data); // можно включить для дебага
+                if (data.ok) {
+                    if (data.avatar_url && headerAvatar) {
+                        headerAvatar.src = data.avatar_url;
+                    }
+                    alert('Настройки успешно обновлены!');
+                } else {
+                    if (data.errors) {
+                        showErrors(data.errors);
+                    } else if (data.error) {
+                        alert(data.error);
+                    }
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Произошла ошибка при сохранении настроек.');
+            });
+        });
+    }
+});
+</script>
 {% endblock %}

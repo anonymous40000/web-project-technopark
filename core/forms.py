@@ -2,7 +2,9 @@ from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
+
 from .models import UserProfile
+
 
 class RegistrationForm(UserCreationForm):
     email = forms.EmailField(required=True, label="Email")
@@ -23,16 +25,15 @@ class RegistrationForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
+        avatar_file = self.cleaned_data.get('avatar')
 
         if commit:
             user.save()
-            avatar_file = self.files.get('avatar')
             UserProfile.objects.create(
                 user=user,
                 profile_pic=avatar_file
             )
         return user
-
 
 
 class LoginForm(forms.Form):
@@ -110,4 +111,3 @@ class SettingsForm(forms.ModelForm):
         if commit:
             profile.save()
         return profile
-

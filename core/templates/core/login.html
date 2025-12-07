@@ -6,67 +6,134 @@
 {% block main %}
 <section class="questions" style="width:70%">
   <div class="questions__title">
-    <h2>Log In</h2>
+    <h2>Login</h2>
   </div>
 
-  <form class="form" action="" method="post">
+  <form class="form" id="loginForm" method="post">
     {% csrf_token %}
 
-    {% if request.GET.next %}
-      <input type="hidden" name="next" value="{{ request.GET.next }}">
-    {% endif %}
+    <div id="login-global-errors" class="form__errors" style="display:none;"></div>
 
-    {% if messages %}
-      <ul class="form__messages">
-        {% for m in messages %}
-          {% if m.tags != 'success' %}
-            <li class="message-{{ m.tags }}">{{ m }}</li>
-          {% endif %}
-        {% endfor %}
-      </ul>
-    {% endif %}
+    <div class="form__group">
+      <label class="form__label" for="{{ form.login.id_for_label }}">{{ form.login.label }}</label>
+      {{ form.login }}
 
-    {% if form.non_field_errors %}
-      <div class="form__errors">
-        {% for error in form.non_field_errors %}
-          <div class="error">{{ error }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
+      <div class="form__errors" data-error-for="login" style="display:none;"></div>
 
-    {% if not user.is_authenticated %}
-      <div class="form__group">
-        <label class="form__label" for="{{ form.login.id_for_label }}">{{ form.login.label }}</label>
-        {{ form.login }}
-        {% if form.login.help_text %}
-          <div class="form__help">{{ form.login.help_text }}</div>
-        {% endif %}
-        {% if form.login.errors %}
-          <div class="form__errors">{{ form.login.errors }}</div>
-        {% endif %}
-      </div>
+      {% if form.login.errors %}
+        <div class="form__errors">
+          {% for e in form.login.errors %}
+            <div class="error">{{ e }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
 
-      <div class="form__group">
-        <label class="form__label" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
-        {{ form.password }}
-        {% if form.password.help_text %}
-          <div class="form__help">{{ form.password.help_text }}</div>
-        {% endif %}
-        {% if form.password.errors %}
-          <div class="form__errors">{{ form.password.errors }}</div>
-        {% endif %}
-      </div>
+    <div class="form__group">
+      <label class="form__label" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+      {{ form.password }}
 
-      <div class="form__actions">
-        <button class="btn btn--primary" type="submit">Log in!</button>
-        <a class="btn btn--secondary" href="{% url 'core:register' %}">create new account</a>
-      </div>
-    {% else %}
-      <div class="form__group">
-        <p>Вы уже авторизованы как <strong>{{ user.username }}</strong>.</p>
-        <p><a href="{% url 'questions:index' %}">Перейти на главную</a> или <a href="{% url 'core:logout' %}">выйти</a>.</p>
-      </div>
-    {% endif %}
+      <div class="form__errors" data-error-for="password" style="display:none;"></div>
+
+      {% if form.password.errors %}
+        <div class="form__errors">
+          {% for e in form.password.errors %}
+            <div class="error">{{ e }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="form__actions">
+      <button class="btn btn--primary" type="submit">Login</button>
+    </div>
   </form>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('loginForm');
+    const headerAvatar = document.querySelector('.header__profile__image');
+    const headerUsername = document.querySelector('.header__profile__username a');
+
+    function clearErrors() {
+        const all = document.querySelectorAll('#login-global-errors, .form__errors[data-error-for]');
+        all.forEach(el => {
+            el.style.display = 'none';
+            el.innerHTML = '';
+        });
+    }
+
+    function showErrors(errors) {
+        for (const [field, msgs] of Object.entries(errors)) {
+            if (field === '__all__') {
+                const globalErrors = document.getElementById('login-global-errors');
+                if (globalErrors) {
+                    globalErrors.style.display = 'block';
+                    globalErrors.innerHTML += msgs
+                        .map(m => `<div class="error">${m}</div>`)
+                        .join('');
+                }
+                continue;
+            }
+
+            const container = document.querySelector(`.form__errors[data-error-for="${field}"]`);
+            if (container) {
+                container.style.display = 'block';
+                container.innerHTML = msgs
+                    .map(m => `<div class="error">${m}</div>`)
+                    .join('');
+            } else {
+                const globalErrors = document.getElementById('login-global-errors');
+                if (globalErrors) {
+                    globalErrors.style.display = 'block';
+                    globalErrors.innerHTML += msgs
+                        .map(m => `<div class="error">${m}</div>`)
+                        .join('');
+                }
+            }
+        }
+    }
+
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            clearErrors();
+
+            const formData = new FormData(form);
+
+            fetch("{% url 'core:login' %}", {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    if (headerUsername && data.username) {
+                        headerUsername.textContent = data.username;
+                    }
+                    if (headerAvatar && data.avatar_url) {
+                        headerAvatar.src = data.avatar_url;
+                    }
+                    window.location.href = data.redirect_url;
+                } else {
+                    if (data.errors) {
+                        showErrors(data.errors);
+                    } else if (data.error) {
+                        alert(data.error);
+                    }
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Произошла ошибка при входе.');
+            });
+        });
+    }
+});
+</script>
 {% endblock %}

@@ -1,27 +1,33 @@
 import importlib
+
 from django.contrib import messages
+from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Q, Count
+from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.decorators.http import require_POST
-from django.core.cache import cache
-from django.db.models import Q, Count
 
 from .models import Question, Answer
 from core.views import sidebar_ctx
 from .forms import AskForm, AnswerForm
 
-
-User = None
-
 auth_module = importlib.import_module('django.contrib.auth')
 User = auth_module.get_user_model()
+
+
+def _is_ajax(request):
+    return request.headers.get('x-requested-with') == 'XMLHttpRequest'
 
 
 def paginate(objects_list, request, per_page=10, cache_timeout=30):
     page_number = request.GET.get('page', 1)
 
-    cache_key = f"paginate_ids_{objects_list.model._meta.db_table}_{per_page}_{hash(str(objects_list.query))}"
+    cache_key = (
+        f"paginate_ids_{objects_list.model._meta.db_table}_"
+        f"{per_page}_{hash(str(objects_list.query))}"
+    )
     id_list = cache.get(cache_key)
     if id_list is None:
         id_list = list(objects_list.values_list('id', flat=True))
@@ -36,16 +42,18 @@ def paginate(objects_list, request, per_page=10, cache_timeout=30):
         page = paginator.page(paginator.num_pages)
 
     page_objects = objects_list.filter(id__in=page.object_list)
-
     page.object_list = page_objects
     return page
+
 
 def index(request, *args, **kwargs):
     search_query = request.GET.get('q', '').strip()
     tag_name = request.GET.get('tag', '').strip() if not search_query else None
 
-    base_qs = Question.objects.detail_qs().annotate(
-        answers_count=Count('answers')
+    base_qs = (
+        Question.objects.detail_qs()
+        .select_related('author__profile')
+        .annotate(answers_count=Count('answers'))
     )
 
     if search_query:
@@ -54,10 +62,10 @@ def index(request, *args, **kwargs):
         )
         page_title = f'Search: "{search_query}"'
     elif tag_name:
-        qs = Question.objects.by_tag(tag_name)
+        qs = Question.objects.by_tag(tag_name).select_related('author__profile')
         page_title = f'Tag: {tag_name}'
     else:
-        qs = Question.objects.newest_full()
+        qs = Question.objects.newest_full().select_related('author__profile')
         page_title = "New Questions"
 
     page = paginate(qs, request, per_page=4)
@@ -70,7 +78,8 @@ def index(request, *args, **kwargs):
 
 def tag_view(request, tag_name=None):
     tag_name = request.GET.get('tag', tag_name)
-    qs = Question.objects.by_tag(tag_name)
+    qs = Question
+    qs = Question.objects.by_tag(tag_name).select_related('author__profile')
     page = paginate(qs, request, per_page=5)
     return render(request, 'questions/tag.html', {
         'questions': page,
@@ -84,7 +93,12 @@ def question_detail(request, question_id):
     question = cache.get(cache_key)
 
     if not question:
-        question = get_object_or_404(Question.objects.detail_qs(), pk=question_id)
+        question = (
+            Question.objects.detail_qs()
+            .select_related('author__profile')
+            .prefetch_related('answers__author__profile')
+            .get(pk=question_id)
+        )
         cache.set(cache_key, question, 60)
 
     if request.method == 'POST':
@@ -101,7 +115,10 @@ def question_detail(request, question_id):
             cache.delete(cache_key)
             messages.success(request, 'Ваш ответ добавлен!')
 
-            url = reverse('questions:question_detail', kwargs={'question_id': question.id}) + f'#answer-{answer.id}'
+            url = (
+                reverse('questions:question_detail', kwargs={'question_id': question.id})
+                + f'#answer-{answer.id}'
+            )
             return redirect(url)
     else:
         form = AnswerForm()
@@ -111,7 +128,6 @@ def question_detail(request, question_id):
         'form': form,
         **sidebar_ctx(),
     })
-
 
 
 def ask_view(request, *args, **kwargs):
@@ -134,7 +150,7 @@ def ask_view(request, *args, **kwargs):
 
 
 def hot_questions(request):
-    qs = Question.objects.best_full()
+    qs = Question.objects.best_full().select_related('author__profile')
     page = paginate(qs, request, per_page=4)
     return render(request, 'questions/hot.html', {
         "questions": page,
@@ -145,7 +161,9 @@ def hot_questions(request):
 
 def _redirect_back_or_detail(request, question_pk: int):
     next_url = request.POST.get("next")
-    return redirect(next_url) if next_url else redirect(reverse("questions:question_detail", args=[question_pk]))
+    return redirect(next_url) if next_url else redirect(
+        reverse("questions:question_detail", args=[question_pk])
+    )
 
 
 @require_POST
@@ -155,6 +173,14 @@ def mark_answer_correct(request, question_id: int, answer_id: int):
 
     cache_key = f'question_detail_{question_id}'
     cache.delete(cache_key)
+
+    if _is_ajax(request):
+        return JsonResponse({
+            'ok': True,
+            'answer_id': answer_id,
+            'question_id': question_id,
+            'is_correct': True,
+        })
 
     return _redirect_back_or_detail(request, answer.question_id)
 
@@ -167,4 +193,63 @@ def unmark_answer_correct(request, question_id: int, answer_id: int):
     cache_key = f'question_detail_{question_id}'
     cache.delete(cache_key)
 
+    if _is_ajax(request):
+        return JsonResponse({
+            'ok': True,
+            'answer_id': answer_id,
+            'question_id': question_id,
+            'is_correct': False,
+        })
+
     return _redirect_back_or_detail(request, answer.question_id)
+
+
+@require_POST
+def vote_question(request, question_id: int):
+    if not _is_ajax(request):
+        return JsonResponse({'ok': False, 'error': 'Only AJAX allowed'}, status=400)
+
+    if not request.user.is_authenticated:
+        return JsonResponse({'ok': False, 'error': 'auth_required'}, status=401)
+
+    question = get_object_or_404(Question, pk=question_id, is_active=True)
+
+    try:
+        rating = int(request.POST.get('rating'))
+    except (TypeError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'Invalid rating'}, status=400)
+
+    question.rating = rating
+    question.save(update_fields=['rating'])
+
+    cache.delete(f'question_detail_{question_id}')
+
+    return JsonResponse({'ok': True, 'rating': question.rating})
+
+
+@require_POST
+def vote_answer(request, question_id: int, answer_id: int):
+    if not _is_ajax(request):
+        return JsonResponse({'ok': False, 'error': 'Only AJAX allowed'}, status=400)
+
+    if not request.user.is_authenticated:
+        return JsonResponse({'ok': False, 'error': 'auth_required'}, status=401)
+
+    answer = get_object_or_404(
+        Answer,
+        pk=answer_id,
+        question_id=question_id,
+        is_active=True,
+    )
+
+    try:
+        rating = int(request.POST.get('rating'))
+    except (TypeError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'Invalid rating'}, status=400)
+
+    answer.rating = rating
+    answer.save(update_fields=['rating'])
+
+    cache.delete(f'question_detail_{question_id}')
+
+    return JsonResponse({'ok': True, 'rating': answer.rating})

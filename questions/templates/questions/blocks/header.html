@@ -16,7 +16,7 @@
     
     {% if user.is_authenticated %}
       <div class="header__profile">
-          <img src="{% static 'questions/img/portrait.jpg' %}" alt="pic" class="header__profile__image">
+          <img src="{{ user.profile.get_avatar_url }}" alt="pic" class="header__profile__image">
           <div class="header__profile__user">
               <span class="header__profile__username">
                   <a href="{% url 'core:settings' %}">{{ user.username }}</a>
