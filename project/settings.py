@@ -156,3 +156,6 @@ CACHES = {
         "LOCATION": "redis://redis:6379/1",
     }
 }
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'

@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.templatetags.static import static
 
 User = get_user_model()
 
@@ -25,12 +26,20 @@ class UserProfile(models.Model):
         ]
         verbose_name = 'Профиль пользователя'
         verbose_name_plural = 'Профили пользователей'
+    
+
+    def get_avatar_url(self):
+        if self.profile_pic:
+            try:
+                return self.profile_pic.url
+            except Exception:
+                pass
+        return static("core/avatar.jpg")
 
     def __str__(self):
         return f'Профиль {self.user.get_username()}'
 
     def update_activity(self):
-        """Обновление статистики активности"""
         from questions.models import Question, Answer
         self.total_questions = Question.objects.filter(author=self.user, is_active=True).count()
         self.total_answers = Answer.objects.filter(author=self.user, is_active=True).count()

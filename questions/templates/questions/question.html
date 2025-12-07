@@ -8,8 +8,18 @@
     <div class="stack">
         <div class="question__root">
             <div class="question__aside">
-                <img src="{% static 'questions/img/portrait.jpg' %}" alt="pic" class="question__image">
-                <input class="question__votes" type="number" value="{{ question.rating }}">
+                <img
+                    src="{{ question.author.profile.get_avatar_url }}"
+                    alt="{{ question.author.username }}"
+                    class="question__image"
+                >
+                <input
+                    class="question__votes"
+                    type="number"
+                    value="{{ question.rating }}"
+                    data-question-id="{{ question.id }}"
+                    data-vote-url="{% url 'questions:vote_question' question.id %}"
+                >
             </div>
             <div class="question__content">
                 <h1 class="question__header question__header--big">{{ question.name }}</h1>
@@ -20,7 +30,9 @@
                         <span class="question__subtitle">Tags</span>
                         <div class="question__tags__list">
                             {% for qt in question.question_tags.all %}
-                            <a class="tag" href="{% url 'questions:tag' %}?tag={{ qt.tag.name }}">{{ qt.tag.name }}</a>
+                                <a class="tag" href="{% url 'questions:tag' %}?tag={{ qt.tag.name }}">
+                                    {{ qt.tag.name }}
+                                </a>
                             {% empty %}
                                 <span>No tags</span>
                             {% endfor %}
@@ -35,14 +47,24 @@
         {% for answer in question.answers.all %}
         <div id="answer-{{ answer.id }}" class="answer__root {% if answer.is_correct %}answer__root--correct{% endif %}">
             <div class="answer__aside">
-                <img src="{% static 'questions/img/portrait.jpg' %}" alt="pic" class="answer__image">
-                <input class="answer__votes" type="number" value="{{ answer.rating }}">
+                <img
+                    src="{{ answer.author.profile.get_avatar_url }}"
+                    alt="{{ answer.author.username }}"
+                    class="answer__image"
+                >
+                <input
+                    class="answer__votes"
+                    type="number"
+                    value="{{ answer.rating }}"
+                    data-answer-id="{{ answer.id }}"
+                    data-vote-url="{% url 'questions:vote_answer' question.id answer.id %}"
+                >
             </div>
             <div class="answer__content">
                 <p class="answer__text">{{ answer.text }}</p>
 
                 {% if answer.is_correct %}
-                <div class="answer__correct">✓ Correct Answer</div>
+                    <div class="answer__correct">✓ Correct Answer</div>
                 {% endif %}
 
                 <div class="answer__meta">
@@ -52,13 +74,23 @@
 
                 <div class="answer__actions">
                     {% if answer.is_correct %}
-                        <form action="{% url 'questions:unmark_answer_correct' question.id answer.id %}" method="post" style="display:inline;">
+                        <form
+                            action="{% url 'questions:unmark_answer_correct' question.id answer.id %}"
+                            method="post"
+                            style="display:inline;"
+                            class="answer-correct-form"
+                        >
                             {% csrf_token %}
                             <input type="hidden" name="next" value="{{ request.get_full_path }}">
                             <button type="submit" class="btn">Снять отметку правильного</button>
                         </form>
                     {% else %}
-                        <form action="{% url 'questions:mark_answer_correct' question.id answer.id %}" method="post" style="display:inline;">
+                        <form
+                            action="{% url 'questions:mark_answer_correct' question.id answer.id %}"
+                            method="post"
+                            style="display:inline;"
+                            class="answer-correct-form"
+                        >
                             {% csrf_token %}
                             <input type="hidden" name="next" value="{{ request.get_full_path }}">
                             <button type="submit" class="btn btn--primary">Отметить как правильный</button>
@@ -68,7 +100,9 @@
             </div>
         </div>
         {% empty %}
-        <div class="question__root"><div class="question__content"><p>No answers yet.</p></div></div>
+        <div class="question__root">
+            <div class="question__content"><p>No answers yet.</p></div>
+        </div>
         {% endfor %}
 
         <form class="form" action="" method="post">
@@ -104,4 +138,114 @@
         </form>
     </div>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+    const loginUrl = "{% url 'core:login' %}";
+
+
+    function attachVoteHandler(input) {
+        if (!input) return;
+
+        input.dataset.prevRating = input.value;
+
+        input.addEventListener('change', function () {
+            const voteUrl = input.dataset.voteUrl;
+            if (!voteUrl) return;
+
+            const newRating = input.value;
+            const prev = input.dataset.prevRating || '0';
+
+            fetch(voteUrl, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({ rating: newRating }),
+                credentials: 'same-origin',
+            })
+            .then(resp => resp.json().then(data => ({ status: resp.status, data })))
+            .then(({ status, data }) => {
+                if (status === 401 || data.error === 'auth_required') {
+                    window.location.href = loginUrl + '?next=' + encodeURIComponent(
+                        window.location.pathname + window.location.search + window.location.hash
+                    );
+                    return;
+                }
+                if (!data.ok) {
+                    alert(data.error || 'Ошибка при голосовании');
+                    input.value = prev;
+                    return;
+                }
+                input.value = data.rating;
+                input.dataset.prevRating = data.rating;
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Ошибка сети при голосовании');
+                input.value = prev;
+            });
+        });
+    }
+
+    document.querySelectorAll('.question__votes').forEach(attachVoteHandler);
+    document.querySelectorAll('.answer__votes').forEach(attachVoteHandler);
+
+
+    document.querySelectorAll('.answer-correct-form').forEach(form => {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: formData,
+                credentials: 'same-origin',
+            })
+            .then(resp => resp.json().then(data => ({ status: resp.status, data })))
+            .then(({ status, data }) => {
+                if (status === 401 || data.error === 'auth_required') {
+                    window.location.href = loginUrl + '?next=' + encodeURIComponent(
+                        window.location.pathname + window.location.search + window.location.hash
+                    );
+                    return;
+                }
+                if (!data.ok) {
+                    alert(data.error || 'Ошибка при изменении статуса ответа');
+                    return;
+                }
+                window.location.reload();
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Ошибка сети при изменении статуса ответа');
+            });
+        });
+    });
+});
+</script>
 {% endblock %}
