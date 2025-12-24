@@ -29,7 +29,43 @@ services:
       timeout: 3s
       retries: 30
 
+  centrifugo:
+    image: centrifugo/centrifugo:v6
+    command: ["centrifugo", "--config=/centrifugo/config.json"]
+    volumes:
+      - ./centrifugo/config.json:/centrifugo/config.json:ro
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
+
   web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      centrifugo:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-project.settings}
+      DEBUG: "${DEBUG:-1}"
+      COLLECT_STATIC: "0"
+      CENTRIFUGO_HTTP_URL: "http://centrifugo:8000"
+      CENTRIFUGO_API_KEY: "${CENTRIFUGO_API_KEY:-dev_api_key_olegoverflow_2025}"
+      CENTRIFUGO_JWT_SECRET: "${CENTRIFUGO_JWT_SECRET:-dev_jwt_secret_olegoverflow_2025}"
+      CENTRIFUGO_WS_URL: "ws://localhost:8001/connection/websocket"
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: ["/bin/bash", "/app/entrypoint.sh"]
+
+  cron:
     build:
       context: .
       dockerfile: Dockerfile
@@ -44,11 +80,17 @@ services:
       DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-project.settings}
       DEBUG: "${DEBUG:-1}"
       COLLECT_STATIC: "0"
-    ports:
-      - "8000:8000"
+      CENTRIFUGO_HTTP_URL: "http://centrifugo:8000"
+      CENTRIFUGO_API_KEY: "${CENTRIFUGO_API_KEY:-dev_api_key_olegoverflow_2025}"
+      CENTRIFUGO_JWT_SECRET: "${CENTRIFUGO_JWT_SECRET:-dev_jwt_secret_olegoverflow_2025}"
+      CENTRIFUGO_WS_URL: "ws://localhost:8001/connection/websocket"
     volumes:
       - .:/app
-    command: ["/bin/bash", "/app/entrypoint.sh"]
+      - ./cron/cronfile:/etc/cron.d/sidebar-cron:ro
+    command: >
+      sh -c "chmod 0644 /etc/cron.d/sidebar-cron &&
+             crontab /etc/cron.d/sidebar-cron &&
+             cron -f"
 
 volumes:
   pgdata:

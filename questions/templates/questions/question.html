@@ -5,247 +5,430 @@
 
 {% block main %}
 <section class="questions">
-    <div class="stack">
-        <div class="question__root">
-            <div class="question__aside">
-                <img
-                    src="{{ question.author.profile.get_avatar_url }}"
-                    alt="{{ question.author.username }}"
-                    class="question__image"
-                >
-                <input
-                    class="question__votes"
-                    type="number"
-                    value="{{ question.rating }}"
-                    data-question-id="{{ question.id }}"
-                    data-vote-url="{% url 'questions:vote_question' question.id %}"
-                >
+  <div class="stack">
+    <div class="question__root">
+      <div class="question__aside">
+        <img
+          src="{{ question.author.profile.get_avatar_url }}"
+          alt="{{ question.author.username }}"
+          class="question__image"
+          onerror="this.onerror=null; this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';"
+        >
+
+        {% if user.is_authenticated %}
+          <input
+            class="question__votes"
+            type="number"
+            value="{{ question.rating }}"
+            data-question-id="{{ question.id }}"
+            data-vote-url="{% url 'questions:vote_question' question.id %}"
+          >
+        {% else %}
+          <input
+            class="question__votes"
+            type="number"
+            value="{{ question.rating }}"
+            disabled
+            title="Войдите, чтобы голосовать"
+          >
+        {% endif %}
+      </div>
+
+      <div class="question__content">
+        <h1 class="question__header question__header--big">{{ question.name }}</h1>
+        <p class="question__description">{{ question.text }}</p>
+
+        <div class="question__footer">
+          <span>Asked by {{ question.author.username|default:"User" }}</span>
+
+          <div class="question__tags">
+            <span class="question__subtitle">Tags</span>
+            <div class="question__tags__list">
+              {% for qt in question.question_tags.all %}
+                <a class="tag" href="{% url 'questions:tag' %}?tag={{ qt.tag.name|urlencode }}">
+                  {{ qt.tag.name }}
+                </a>
+              {% empty %}
+                <span>No tags</span>
+              {% endfor %}
             </div>
-            <div class="question__content">
-                <h1 class="question__header question__header--big">{{ question.name }}</h1>
-                <p class="question__description">{{ question.text }}</p>
-                <div class="question__footer">
-                    <span>Asked by {{ question.author.username|default:"User" }}</span>
-                    <div class="question__tags">
-                        <span class="question__subtitle">Tags</span>
-                        <div class="question__tags__list">
-                            {% for qt in question.question_tags.all %}
-                                <a class="tag" href="{% url 'questions:tag' %}?tag={{ qt.tag.name }}">
-                                    {{ qt.tag.name }}
-                                </a>
-                            {% empty %}
-                                <span>No tags</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
+          </div>
         </div>
 
-        <h3 class="answers__title">Answers ({{ question.answers.count }})</h3>
+        {# ===== DEBUG PANEL ===== #}
+        <details class="debug-panel" style="margin-top:12px;">
+          <summary style="cursor:pointer;">Realtime debug</summary>
 
-        {% for answer in question.answers.all %}
+          <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+                      font-size: 12px; white-space: pre-wrap; background: #111; color: #0f0; padding: 10px; border-radius: 8px; margin-top: 8px;">
+            question_id={{ question.id }}\n
+            user_authenticated={{ user.is_authenticated|yesno:"yes,no" }}\n
+            hostname={{ request.get_host }}\n
+            ws_url=<span id="dbgWsUrl"></span>\n
+            channel=<span id="dbgChannel"></span>\n
+            status=<span id="dbgStatus">boot</span>\n
+            last_event=<span id="dbgLastEvent">-</span>\n
+          </div>
+
+          <div style="margin-top:8px;">
+            <button type="button" class="btn" id="dbgClear">Clear log</button>
+          </div>
+
+          <pre id="dbgLog"
+               style="margin-top:8px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+                      font-size: 12px; white-space: pre-wrap; background: #0b0b0b; color: #ddd; padding: 10px; border-radius: 8px; max-height: 220px; overflow:auto;"></pre>
+        </details>
+      </div>
+    </div>
+
+    <h3 class="answers__title">Answers ({{ question.answers_count|default:question.answers.count }})</h3>
+
+    <div id="answersList">
+      {% for answer in answers %}
         <div id="answer-{{ answer.id }}" class="answer__root {% if answer.is_correct %}answer__root--correct{% endif %}">
-            <div class="answer__aside">
-                <img
-                    src="{{ answer.author.profile.get_avatar_url }}"
-                    alt="{{ answer.author.username }}"
-                    class="answer__image"
-                >
-                <input
-                    class="answer__votes"
-                    type="number"
-                    value="{{ answer.rating }}"
-                    data-answer-id="{{ answer.id }}"
-                    data-vote-url="{% url 'questions:vote_answer' question.id answer.id %}"
-                >
-            </div>
-            <div class="answer__content">
-                <p class="answer__text">{{ answer.text }}</p>
+          <div class="answer__aside">
+            <img
+              src="{{ answer.author.profile.get_avatar_url }}"
+              alt="{{ answer.author.username }}"
+              class="answer__image"
+              onerror="this.onerror=null; this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';"
+            >
 
-                {% if answer.is_correct %}
-                    <div class="answer__correct">✓ Correct Answer</div>
-                {% endif %}
+            {% if user.is_authenticated %}
+              <input
+                class="answer__votes"
+                type="number"
+                value="{{ answer.rating }}"
+                data-answer-id="{{ answer.id }}"
+                data-vote-url="{% url 'questions:vote_answer' question.id answer.id %}"
+              >
+            {% else %}
+              <input
+                class="answer__votes"
+                type="number"
+                value="{{ answer.rating }}"
+                disabled
+                title="Войдите, чтобы голосовать"
+              >
+            {% endif %}
+          </div>
 
-                <div class="answer__meta">
-                    <span class="answer__author">{{ answer.author.username|default:"User" }}</span>
-                    <span class="answer__date">{{ answer.created }}</span>
-                </div>
+          <div class="answer__content">
+            <p class="answer__text">{{ answer.text }}</p>
 
-                <div class="answer__actions">
-                    {% if answer.is_correct %}
-                        <form
-                            action="{% url 'questions:unmark_answer_correct' question.id answer.id %}"
-                            method="post"
-                            style="display:inline;"
-                            class="answer-correct-form"
-                        >
-                            {% csrf_token %}
-                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                            <button type="submit" class="btn">Снять отметку правильного</button>
-                        </form>
-                    {% else %}
-                        <form
-                            action="{% url 'questions:mark_answer_correct' question.id answer.id %}"
-                            method="post"
-                            style="display:inline;"
-                            class="answer-correct-form"
-                        >
-                            {% csrf_token %}
-                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                            <button type="submit" class="btn btn--primary">Отметить как правильный</button>
-                        </form>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        {% empty %}
-        <div class="question__root">
-            <div class="question__content"><p>No answers yet.</p></div>
-        </div>
-        {% endfor %}
-
-        <form class="form" action="" method="post">
-            {% csrf_token %}
-
-            {% if messages %}
-              <ul class="form__messages">
-                {% for m in messages %}<li>{{ m }}</li>{% endfor %}
-              </ul>
+            {% if answer.is_correct %}
+              <div class="answer__correct">✓ Correct Answer</div>
             {% endif %}
 
-            {% if form.non_field_errors %}
-              <div class="form__errors">
-                {% for error in form.non_field_errors %}
-                  <div class="error">{{ error }}</div>
-                {% endfor %}
+            <div class="answer__meta">
+              <span class="answer__author">{{ answer.author.username|default:"User" }}</span>
+              <span class="answer__date">{{ answer.created }}</span>
+            </div>
+
+            {% if user.is_authenticated and user == question.author %}
+              <div class="answer__actions">
+                {% if answer.is_correct %}
+                  <form action="{% url 'questions:unmark_answer_correct' question.id answer.id %}"
+                        method="post"
+                        style="display:inline;"
+                        class="answer-correct-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn">Снять отметку правильного</button>
+                  </form>
+                {% else %}
+                  <form action="{% url 'questions:mark_answer_correct' question.id answer.id %}"
+                        method="post"
+                        style="display:inline;"
+                        class="answer-correct-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn btn--primary">Отметить как правильный</button>
+                  </form>
+                {% endif %}
               </div>
             {% endif %}
-
-            <div class="form__group">
-                <label class="form__label" for="{{ form.text.id_for_label }}">{{ form.text.label }}</label>
-                {{ form.text }}
-                {% if form.text.help_text %}
-                    <div class="form__help">{{ form.text.help_text }}</div>
-                {% endif %}
-                {% if form.text.errors %}
-                    <div class="form__errors">{{ form.text.errors }}</div>
-                {% endif %}
-            </div>
-            <div class="form__actions">
-                <button class="btn btn--primary" type="submit">Answer</button>
-            </div>
-        </form>
+          </div>
+        </div>
+      {% empty %}
+        <div class="question__root">
+          <div class="question__content"><p>No answers yet.</p></div>
+        </div>
+      {% endfor %}
     </div>
+
+    {% if page_obj.has_other_pages %}
+      {% include "includes/pagination.html" with page_obj=page_obj %}
+    {% endif %}
+
+    {% if user.is_authenticated %}
+      <form class="form" action="" method="post">
+        {% csrf_token %}
+
+        {% if messages %}
+          <ul class="form__messages">
+            {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+
+        <div class="form__group">
+          <label class="form__label" for="{{ form.text.id_for_label }}">{{ form.text.label }}</label>
+          {{ form.text }}
+        </div>
+        <div class="form__actions">
+          <button class="btn btn--primary" type="submit">Answer</button>
+        </div>
+      </form>
+    {% else %}
+      <div class="form__info" style="padding: 20px; background: #f5f5f5; border-radius: 4px; margin-top: 20px;">
+        <p><a href="{% url 'core:login' %}?next={{ request.get_full_path }}">Войдите</a>, чтобы оставить ответ.</p>
+      </div>
+    {% endif %}
+  </div>
 </section>
 
+<script src="https://cdn.jsdelivr.net/npm/centrifuge@5/dist/centrifuge.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  const questionId = {{ question.id }};
+  const tokenUrl = "{% url 'questions:centrifugo_token' %}";
 
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
+  const wsScheme = (window.location.protocol === 'https:') ? 'wss' : 'ws';
+  const wsUrl = `${wsScheme}://${window.location.hostname}:8001/connection/websocket`;
+  const channel = `question:${questionId}`;
+
+  const dbg = {
+    ws: document.getElementById('dbgWsUrl'),
+    ch: document.getElementById('dbgChannel'),
+    st: document.getElementById('dbgStatus'),
+    le: document.getElementById('dbgLastEvent'),
+    log: document.getElementById('dbgLog'),
+    clear: document.getElementById('dbgClear'),
+  };
+  if (dbg.ws) dbg.ws.textContent = wsUrl;
+  if (dbg.ch) dbg.ch.textContent = channel;
+
+  function logLine(s) {
+    console.log(s);
+    if (!dbg.log) return;
+    dbg.log.textContent += s + "\n";
+    dbg.log.scrollTop = dbg.log.scrollHeight;
+  }
+  function setStatus(s) { if (dbg.st) dbg.st.textContent = s; }
+  function setLastEvent(s) { if (dbg.le) dbg.le.textContent = s; }
+  if (dbg.clear) dbg.clear.addEventListener('click', () => { if (dbg.log) dbg.log.textContent = ""; });
+
+  function showToast(text) {
+    let toast = document.getElementById('rtToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'rtToast';
+      toast.style.position = 'fixed';
+      toast.style.right = '16px';
+      toast.style.bottom = '16px';
+      toast.style.zIndex = '99999';
+      toast.style.maxWidth = '360px';
+      toast.style.padding = '12px 14px';
+      toast.style.borderRadius = '10px';
+      toast.style.background = 'rgba(20,20,20,0.92)';
+      toast.style.color = '#fff';
+      toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.35)';
+      toast.style.fontSize = '14px';
+      toast.style.lineHeight = '1.35';
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(6px)';
+      toast.style.transition = 'opacity .18s ease, transform .18s ease';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = text;
+    requestAnimationFrame(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+    });
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(6px)';
+    }, 2200);
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function bumpAnswersCount(delta) {
+    const title = document.querySelector('.answers__title');
+    if (!title) return;
+
+    const m = title.textContent.match(/\((\d+)\)/);
+    if (!m) return;
+
+    const n = parseInt(m[1], 10);
+    if (!Number.isFinite(n)) return;
+
+    const next = n + delta;
+    title.textContent = title.textContent.replace(/\(\d+\)/, `(${next})`);
+  }
+
+  function removeNoAnswersPlaceholder() {
+    const list = document.getElementById('answersList');
+    if (!list) return;
+
+    const placeholders = Array.from(list.querySelectorAll('.question__root'));
+    for (const ph of placeholders) {
+      const p = ph.querySelector('p');
+      if (p && p.textContent.trim().toLowerCase() === 'no answers yet.') {
+        ph.remove();
+      }
+    }
+  }
+
+  function renderAnswerCard(answer) {
+    const answerId = Number(answer.id);
+    const username = escapeHtml(answer?.author?.username || 'User');
+    const text = escapeHtml(answer?.text || '');
+    const created = escapeHtml(answer?.created || '');
+    const rating = Number.isFinite(Number(answer?.rating)) ? Number(answer.rating) : 0;
+    const avatarUrl = escapeHtml(answer?.author?.avatar_url || '');
+    const isCorrect = !!answer?.is_correct;
+
+    const root = document.createElement('div');
+    root.id = `answer-${answerId}`;
+    root.className = `answer__root${isCorrect ? ' answer__root--correct' : ''}`;
+
+    const isAuth = {{ user.is_authenticated|yesno:"true,false" }};
+
+    const voteUrl = escapeHtml(answer?.vote_url || '');
+
+    root.innerHTML = `
+      <div class="answer__aside">
+        <img
+          src="${avatarUrl}"
+          alt="${username}"
+          class="answer__image"
+          onerror="this.onerror=null; this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';"
+        >
+        ${
+          isAuth && voteUrl ? `
+            <input
+              class="answer__votes"
+              type="number"
+              value="${rating}"
+              data-answer-id="${answerId}"
+              data-vote-url="${voteUrl}"
+            >
+          ` : `
+            <input
+              class="answer__votes"
+              type="number"
+              value="${rating}"
+              disabled
+              title="Войдите, чтобы голосовать"
+            >
+          `
         }
-        return cookieValue;
-    }
+      </div>
 
-    const csrftoken = getCookie('csrftoken');
-    const loginUrl = "{% url 'core:login' %}";
+      <div class="answer__content">
+        <p class="answer__text">${text}</p>
+        ${isCorrect ? `<div class="answer__correct">✓ Correct Answer</div>` : ``}
+        <div class="answer__meta">
+          <span class="answer__author">${username}</span>
+          <span class="answer__date">${created}</span>
+        </div>
+      </div>
+    `;
+    return root;
+  }
 
+  function handleNewAnswer(answer) {
+    if (!answer || !answer.id) return;
 
-    function attachVoteHandler(input) {
-        if (!input) return;
+    const list = document.getElementById('answersList');
+    if (!list) return;
 
-        input.dataset.prevRating = input.value;
+    if (document.getElementById(`answer-${answer.id}`)) return;
 
-        input.addEventListener('change', function () {
-            const voteUrl = input.dataset.voteUrl;
-            if (!voteUrl) return;
+    removeNoAnswersPlaceholder();
 
-            const newRating = input.value;
-            const prev = input.dataset.prevRating || '0';
+    const card = renderAnswerCard(answer);
 
-            fetch(voteUrl, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': csrftoken,
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({ rating: newRating }),
-                credentials: 'same-origin',
-            })
-            .then(resp => resp.json().then(data => ({ status: resp.status, data })))
-            .then(({ status, data }) => {
-                if (status === 401 || data.error === 'auth_required') {
-                    window.location.href = loginUrl + '?next=' + encodeURIComponent(
-                        window.location.pathname + window.location.search + window.location.hash
-                    );
-                    return;
-                }
-                if (!data.ok) {
-                    alert(data.error || 'Ошибка при голосовании');
-                    input.value = prev;
-                    return;
-                }
-                input.value = data.rating;
-                input.dataset.prevRating = data.rating;
-            })
-            .catch(err => {
-                console.error(err);
-                alert('Ошибка сети при голосовании');
-                input.value = prev;
-            });
-        });
-    }
+    list.insertBefore(card, list.firstChild);
 
-    document.querySelectorAll('.question__votes').forEach(attachVoteHandler);
-    document.querySelectorAll('.answer__votes').forEach(attachVoteHandler);
+    bumpAnswersCount(1);
+    showToast(`Новый ответ от ${answer.author?.username || 'User'}`);
+  }
 
+  logLine("🚀 Init Centrifuge");
+  logLine("WS URL: " + wsUrl);
+  logLine("Channel: " + channel);
 
-    document.querySelectorAll('.answer-correct-form').forEach(form => {
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
+  fetch(tokenUrl)
+    .then(r => r.json())
+    .then(data => {
+      const centrifuge = new Centrifuge(wsUrl, { token: data.token, debug: true });
 
-            const formData = new FormData(form);
+      centrifuge.on('connecting', (ctx) => {
+        setStatus("connecting");
+        logLine("⏳ connecting " + JSON.stringify({code: ctx.code, reason: ctx.reason}));
+      });
 
-            fetch(form.action, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': csrftoken,
-                },
-                body: formData,
-                credentials: 'same-origin',
-            })
-            .then(resp => resp.json().then(data => ({ status: resp.status, data })))
-            .then(({ status, data }) => {
-                if (status === 401 || data.error === 'auth_required') {
-                    window.location.href = loginUrl + '?next=' + encodeURIComponent(
-                        window.location.pathname + window.location.search + window.location.hash
-                    );
-                    return;
-                }
-                if (!data.ok) {
-                    alert(data.error || 'Ошибка при изменении статуса ответа');
-                    return;
-                }
-                window.location.reload();
-            })
-            .catch(err => {
-                console.error(err);
-                alert('Ошибка сети при изменении статуса ответа');
-            });
-        });
+      centrifuge.on('connected', (ctx) => {
+        setStatus("connected");
+        logLine("✅ connected " + JSON.stringify(ctx));
+      });
+
+      centrifuge.on('disconnected', (ctx) => {
+        setStatus("disconnected");
+        logLine("❌ disconnected " + JSON.stringify({code: ctx.code, reason: ctx.reason}));
+      });
+
+      centrifuge.on('error', (ctx) => {
+        setStatus("error");
+        logLine("❌ transport error " + JSON.stringify(ctx));
+      });
+
+      const sub = centrifuge.newSubscription(channel);
+
+      sub.on('subscribing', (ctx) => {
+        logLine("⏳ subscribing " + JSON.stringify({code: ctx.code, reason: ctx.reason}));
+      });
+
+      sub.on('subscribed', (ctx) => {
+        logLine("✅ subscribed " + JSON.stringify(ctx));
+      });
+
+      sub.on('unsubscribed', (ctx) => {
+        logLine("❌ unsubscribed " + JSON.stringify({code: ctx.code, reason: ctx.reason}));
+      });
+
+      sub.on('publication', (ctx) => {
+        setLastEvent(new Date().toISOString());
+        logLine("📩 publication " + JSON.stringify(ctx.data));
+
+        if (ctx.data && ctx.data.type === 'new_answer') {
+          handleNewAnswer(ctx.data.answer);
+        }
+      });
+
+      sub.on('error', (ctx) => {
+        logLine("❌ sub error " + JSON.stringify(ctx));
+      });
+
+      centrifuge.connect();
+      sub.subscribe();
+    })
+    .catch(err => {
+      setStatus("token_error");
+      logLine("❌ token fetch error " + String(err));
     });
 });
 </script>
+
+
 {% endblock %}

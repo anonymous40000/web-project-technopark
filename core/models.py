@@ -26,7 +26,7 @@ class UserProfile(models.Model):
         ]
         verbose_name = 'Профиль пользователя'
         verbose_name_plural = 'Профили пользователей'
-    
+
 
     def get_avatar_url(self):
         if self.profile_pic:

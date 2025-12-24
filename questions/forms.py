@@ -1,78 +1,78 @@
 from django import forms
-from .models import Question, Tag, QuestionTag, Answer
+from .models import Question, Answer
+
 
 class AskForm(forms.ModelForm):
+    name = forms.CharField(
+        label="Заголовок вопроса",
+        min_length=10,
+        error_messages={
+            "required": "Введите заголовок вопроса",
+            "min_length": "Заголовок должен содержать минимум 10 символов",
+        },
+    )
+
+    text = forms.CharField(
+        label="Текст вопроса",
+        min_length=20,
+        widget=forms.Textarea(attrs={"rows": 6}),
+        error_messages={
+            "required": "Введите текст вопроса",
+            "min_length": "Описание должно содержать минимум 20 символов",
+        },
+    )
+
     tags_input = forms.CharField(
         label="Теги",
         help_text="Введите теги через запятую",
         required=False,
-        widget=forms.TextInput(attrs={'placeholder': 'python, django, базы-данных'})
+        widget=forms.TextInput(attrs={"placeholder": "python, django, базы-данных"}),
     )
 
     class Meta:
         model = Question
-        fields = ['name', 'text']
-        labels = {
-            'name': 'Заголовок вопроса',
-            'text': 'Текст вопроса',
-        }
-        widgets = {
-            'text': forms.Textarea(attrs={'rows': 6}),
-        }
+        fields = ["name", "text", "tags_input"]
 
-    def clean_name(self):
-        name = self.cleaned_data.get('name')
-        if len(name) < 10:
-            raise forms.ValidationError("Заголовок должен содержать минимум 10 символов")
-        return name
+    def clean_tags_input(self):
+        raw = (self.cleaned_data.get("tags_input") or "").strip()
+        if not raw:
+            return []
 
-    def clean_text(self):
-        text = self.cleaned_data.get('text')
-        if len(text) < 20:
-            raise forms.ValidationError("Описание должно содержать минимум 20 символов")
-        return text
+        tags = [t.strip() for t in raw.split(",") if t.strip()]
+        if not tags:
+            return []
+
+        uniq = []
+        seen = set()
+        for t in tags:
+            key = t.lower()
+            if key not in seen:
+                seen.add(key)
+                uniq.append(t)
+
+        return uniq
 
     def save(self, commit=True, author=None):
         question = super().save(commit=False)
-        if author:
+        if author is not None:
             question.author = author
-
         if commit:
             question.save()
-            tags_input = self.cleaned_data.get('tags_input', '').strip()
-            if tags_input:
-                tags_list = [tag.strip() for tag in tags_input.split(',') if tag.strip()]
-                for tag_name in tags_list:
-                    tag, created = Tag.objects.get_or_create(name=tag_name)
-                    QuestionTag.objects.get_or_create(question=question, tag=tag)
         return question
 
 
 class AnswerForm(forms.ModelForm):
+    text = forms.CharField(
+        label="Содержание ответа",
+        min_length=20,
+        help_text="Введите содержание ответа",
+        widget=forms.Textarea(attrs={"rows": 6, "placeholder": "Напишите ответ на вопрос..."}),
+        error_messages={
+            "required": "Введите текст ответа",
+            "min_length": "Ответ должен содержать минимум 20 символов",
+        },
+    )
+
     class Meta:
         model = Answer
-        fields = ['text']
-        labels = {
-            'text': 'Содержание ответа',
-        }
-        help_texts = {
-            'text': 'Введите содержание ответа',
-        }
-        widgets = {
-            'text': forms.Textarea(attrs={
-                'rows': 6,
-                'placeholder': 'Напишите ответ на вопрос...'
-            }),
-        }
-
-    def clean_text(self):
-        text = self.cleaned_data.get('text')
-        if len(text) < 20:
-            raise forms.ValidationError("Ответ должен содержать минимум 20 символов")
-        return text
-
-    def save(self, commit=True):
-        answer = super().save(commit=False)
-        if commit:
-            answer.save()
-        return answer
+        fields = ["text"]

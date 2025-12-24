@@ -1,52 +1,67 @@
 {% extends "questions/base.html" %}
+{% load static %}
 
 {% block title %}
 Профиль {{ member.username }} — OlegOverFlow
 {% endblock %}
 
 {% block main %}
-<h1>Профиль {{ member.username }}</h1>
+<section class="questions" style="padding: 20px;">
+  <div style="margin-bottom: 30px;">
+    <h1 style="margin-bottom: 20px;">Профиль {{ member.username }}</h1>
 
-{% if member.profile.profile_pic %}
-  <p>
-    <img src="{{ member.profile.profile_pic.url }}" alt="{{ member.username }}" style="max-width: 150px;">
-  </p>
-{% endif %}
+    {% if member.profile.profile_pic %}
+      <p style="margin-bottom: 15px;">
+        <img src="{{ member.profile.profile_pic.url }}" alt="{{ member.username }}" style="max-width: 150px; border-radius: 8px;">
+      </p>
+    {% endif %}
 
-{% if member.profile.bio %}
-  <p><strong>О себе:</strong> {{ member.profile.bio }}</p>
-{% endif %}
+    {% if member.profile.bio %}
+      <p style="margin-bottom: 15px;"><strong>О себе:</strong> {{ member.profile.bio }}</p>
+    {% endif %}
+  </div>
 
-<hr>
+  <hr style="margin: 30px 0;">
 
-<h2>Вопросы ({{ questions|length }})</h2>
-{% if questions %}
-  <ul>
-    {% for q in questions %}
-      <li>
-        <a href="{{ q.get_absolute_url }}">{{ q.name }}</a>
-        (рейтинг: {{ q.rating }})
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>Этот пользователь ещё не задавал вопросов.</p>
-{% endif %}
+  <div style="margin-bottom: 30px;">
+    <h2 style="margin-bottom: 15px;">Вопросы ({{ questions|length }})</h2>
+    {% if questions %}
+      <ul style="list-style: none; padding: 0;">
+        {% for q in questions %}
+          <li style="margin-bottom: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+            <a href="{{ q.get_absolute_url }}" style="font-weight: 500;">{{ q.name }}</a>
+            <span style="color: #666; margin-left: 10px;">(рейтинг: {{ q.rating }})</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p style="color: #666;">Этот пользователь ещё не задавал вопросов.</p>
+    {% endif %}
+  </div>
 
-<hr>
+  <hr style="margin: 30px 0;">
 
-<h2>Ответы ({{ answers|length }})</h2>
-{% if answers %}
-  <ul>
-    {% for a in answers %}
-      <li>
-        В вопросе <a href="{{ a.question.get_absolute_url }}">{{ a.question.name }}</a>:<br>
-        {{ a.text|truncatechars:200 }}
-        (рейтинг ответа: {{ a.rating }})
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>Этот пользователь ещё не отвечал на вопросы.</p>
-{% endif %}
+  <div style="margin-bottom: 30px;">
+    <h2 style="margin-bottom: 15px;">Ответы ({{ answers|length }})</h2>
+    {% if answers %}
+      <ul style="list-style: none; padding: 0;">
+        {% for a in answers %}
+          <li style="margin-bottom: 15px; padding: 15px; background: #f5f5f5; border-radius: 4px;">
+            <div style="margin-bottom: 8px;">
+              В вопросе <a href="{{ a.question.get_absolute_url }}" style="font-weight: 500;">{{ a.question.name }}</a>
+            </div>
+            <div style="color: #333; margin-bottom: 8px;">
+              {{ a.text|truncatechars:200 }}
+            </div>
+            <div style="color: #666; font-size: 0.9em;">
+              (рейтинг ответа: {{ a.rating }})
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p style="color: #666;">Этот пользователь ещё не отвечал на вопросы.</p>
+    {% endif %}
+  </div>
+</section>
 {% endblock %}

@@ -1,110 +1,179 @@
-import importlib
+import time
+import jwt
+import requests
 
+from django.conf import settings
 from django.contrib import messages
-from django.core.cache import cache
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q, Count
+from django.db import transaction
+from django.db.models import Count, F, OuterRef, Subquery, Exists, IntegerField
 from django.http import JsonResponse
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
-from django.views.decorators.http import require_POST
 
-from .models import Question, Answer
-from core.views import sidebar_ctx
+from .models import Question, Answer, QuestionLike, AnswerLike, Tag, QuestionTag
 from .forms import AskForm, AnswerForm
 
-auth_module = importlib.import_module('django.contrib.auth')
-User = auth_module.get_user_model()
 
-
-def _is_ajax(request):
-    return request.headers.get('x-requested-with') == 'XMLHttpRequest'
-
-
-def paginate(objects_list, request, per_page=10, cache_timeout=30):
-    page_number = request.GET.get('page', 1)
-
-    cache_key = (
-        f"paginate_ids_{objects_list.model._meta.db_table}_"
-        f"{per_page}_{hash(str(objects_list.query))}"
+def centrifugo_publish(channel: str, data: dict) -> None:
+    url = f"{settings.CENTRIFUGO_HTTP_URL}/api"  # Убрали /publish
+    payload = {
+        "method": "publish",  # Добавили метод
+        "params": {
+            "channel": channel,
+            "data": data
+        }
+    }
+    r = requests.post(
+        url,
+        headers={
+            "Content-Type": "application/json",
+            "X-API-Key": settings.CENTRIFUGO_API_KEY,
+        },
+        json=payload,  # Изменили структуру
+        timeout=3,
     )
-    id_list = cache.get(cache_key)
-    if id_list is None:
-        id_list = list(objects_list.values_list('id', flat=True))
-        cache.set(cache_key, id_list, cache_timeout)
+    r.raise_for_status()
+    print(f"✅ Published to {channel}: {r.json()}")
 
-    paginator = Paginator(id_list, per_page)
+
+@login_required
+def centrifugo_token(request):
+    payload = {
+        "sub": str(request.user.id),
+        "exp": int(time.time()) + 60 * 10,
+        "channel_patterns": [
+            {
+                "pattern": "question:*",
+                "allow": ["subscribe"]
+            }
+        ]
+    }
+    token = jwt.encode(payload, settings.CENTRIFUGO_JWT_SECRET, algorithm="HS256")
+    return JsonResponse({"token": token})
+
+
+def paginate(objects_list, request, per_page=20):
+    paginator = Paginator(objects_list, per_page)
+    page_number = request.GET.get("page", 1)
     try:
-        page = paginator.page(page_number)
+        page_obj = paginator.page(page_number)
     except PageNotAnInteger:
-        page = paginator.page(1)
+        page_obj = paginator.page(1)
     except EmptyPage:
-        page = paginator.page(paginator.num_pages)
-
-    page_objects = objects_list.filter(id__in=page.object_list)
-    page.object_list = page_objects
-    return page
+        page_obj = paginator.page(paginator.num_pages)
+    return page_obj
 
 
-def index(request, *args, **kwargs):
-    search_query = request.GET.get('q', '').strip()
-    tag_name = request.GET.get('tag', '').strip() if not search_query else None
+def get_question_list_queryset(request):
+    answers_count_sq = Answer.objects.filter(
+        question=OuterRef("pk"),
+        is_active=True
+    ).values("question").annotate(cnt=Count("*")).values("cnt")
 
-    base_qs = (
-        Question.objects.detail_qs()
-        .select_related('author__profile')
-        .annotate(answers_count=Count('answers'))
+    qs = Question.objects.filter(is_active=True).select_related(
+        "author", "author__profile"
+    ).prefetch_related(
+        "question_tags__tag"
+    ).annotate(
+        answers_count=Subquery(answers_count_sq, output_field=IntegerField())
     )
 
-    if search_query:
-        qs = base_qs.filter(
-            Q(name__icontains=search_query) | Q(text__icontains=search_query)
+    if request.user.is_authenticated:
+        liked_sq = QuestionLike.objects.filter(
+            question=OuterRef("pk"),
+            user=request.user
         )
-        page_title = f'Search: "{search_query}"'
-    elif tag_name:
-        qs = Question.objects.by_tag(tag_name).select_related('author__profile')
-        page_title = f'Tag: {tag_name}'
-    else:
-        qs = Question.objects.newest_full().select_related('author__profile')
-        page_title = "New Questions"
+        qs = qs.annotate(user_has_liked=Exists(liked_sq))
 
-    page = paginate(qs, request, per_page=4)
-    return render(request, 'questions/index.html', {
-        "questions": page,
-        "page_title": page_title,
-        **sidebar_ctx(),
+    return qs
+
+
+def index(request):
+    q = request.GET.get("q", "").strip()
+    qs = get_question_list_queryset(request)
+
+    if q:
+        qs = qs.filter(name__icontains=q)
+
+    qs = qs.order_by("-created", "-id")
+    page_obj = paginate(qs, request, per_page=20)
+
+    return render(request, "questions/index.html", {
+        "questions": page_obj,
+        "page_obj": page_obj,
+        "search_query": q,
+        "page_title": "New Questions",
+    })
+
+
+def hot_questions(request):
+    qs = get_question_list_queryset(request)
+    qs = qs.order_by("-rating", "-created", "-id")
+    page_obj = paginate(qs, request, per_page=20)
+
+    return render(request, "questions/hot.html", {
+        "questions": page_obj,
+        "page_obj": page_obj,
+        "page_title": "Hot Questions",
     })
 
 
 def tag_view(request, tag_name=None):
-    tag_name = request.GET.get('tag', tag_name)
-    qs = Question
-    qs = Question.objects.by_tag(tag_name).select_related('author__profile')
-    page = paginate(qs, request, per_page=5)
-    return render(request, 'questions/tag.html', {
-        'questions': page,
-        'tag_name': tag_name,
-        **sidebar_ctx(),
+    tag = (tag_name or request.GET.get("tag", "")).strip()
+    if not tag:
+        return redirect("questions:index")
+
+    q = request.GET.get("q", "").strip()
+
+    qs = get_question_list_queryset(request).filter(
+        question_tags__tag__name__iexact=tag
+    )
+
+    if q:
+        qs = qs.filter(name__icontains=q)
+
+    qs = qs.order_by("-created", "-id")
+    page_obj = paginate(qs, request, per_page=20)
+
+    return render(request, "questions/tag.html", {
+        "questions": page_obj,
+        "page_obj": page_obj,
+        "tag_name": tag,
+        "search_query": q,
+        "page_title": f"Tag: {tag}",
     })
 
 
 def question_detail(request, question_id):
-    cache_key = f'question_detail_{question_id}'
-    question = cache.get(cache_key)
+    question_qs = Question.objects.select_related(
+        "author", "author__profile"
+    ).prefetch_related("question_tags__tag")
 
-    if not question:
-        question = (
-            Question.objects.detail_qs()
-            .select_related('author__profile')
-            .prefetch_related('answers__author__profile')
-            .get(pk=question_id)
-        )
-        cache.set(cache_key, question, 60)
+    if request.user.is_authenticated:
+        liked_sq = QuestionLike.objects.filter(question=OuterRef("pk"), user=request.user)
+        question_qs = question_qs.annotate(user_has_liked=Exists(liked_sq))
 
-    if request.method == 'POST':
+    question = get_object_or_404(question_qs, pk=question_id, is_active=True)
+
+    answers_qs = Answer.objects.filter(
+        question=question,
+        is_active=True
+    ).select_related(
+        "author", "author__profile"
+    ).order_by("-is_correct", "-rating", "-created")
+
+    if request.user.is_authenticated:
+        ans_liked_sq = AnswerLike.objects.filter(answer=OuterRef("pk"), user=request.user)
+        answers_qs = answers_qs.annotate(user_has_liked=Exists(ans_liked_sq))
+
+    page_obj = paginate(answers_qs, request, per_page=30)
+
+    if request.method == "POST":
         if not request.user.is_authenticated:
-            messages.error(request, 'Нужно войти, чтобы отвечать.')
-            return redirect('core:login')
+            messages.error(request, "Войдите, чтобы оставить ответ")
+            return redirect("core:login")
 
         form = AnswerForm(request.POST)
         if form.is_valid():
@@ -112,144 +181,139 @@ def question_detail(request, question_id):
             answer.question = question
             answer.author = request.user
             answer.save()
-            cache.delete(cache_key)
-            messages.success(request, 'Ваш ответ добавлен!')
 
-            url = (
-                reverse('questions:question_detail', kwargs={'question_id': question.id})
-                + f'#answer-{answer.id}'
-            )
-            return redirect(url)
+            avatar_url = ""
+            if hasattr(answer.author, "profile"):
+                avatar_url = str(getattr(answer.author.profile, "get_avatar_url", "") or "")
+
+            vote_url = reverse("questions:vote_answer", args=[question.id, answer.id])
+
+            data = {
+                "type": "new_answer",
+                "question_id": question.id,
+                "answer": {
+                    "id": int(answer.id),
+                    "text": str(answer.text),
+                    "rating": int(answer.rating),
+                    "is_correct": bool(answer.is_correct),
+                    "created": str(answer.created),
+                    "author": {
+                        "username": str(answer.author.username),
+                        "avatar_url": avatar_url,
+                    },
+                    "vote_url": str(vote_url),
+                },
+            }
+
+            centrifugo_publish(f"question:{question.id}", data)
+
+            messages.success(request, "Ответ добавлен")
+            return redirect("questions:question_detail", question_id=question.pk)
     else:
         form = AnswerForm()
 
-    return render(request, 'questions/question.html', {
-        'question': question,
-        'form': form,
-        **sidebar_ctx(),
+    return render(request, "questions/question.html", {
+        "question": question,
+        "answers": page_obj,
+        "page_obj": page_obj,
+        "form": form,
+        "CENTRIFUGO_WS_URL": getattr(settings, "CENTRIFUGO_WS_URL", "ws://localhost:8001/connection/websocket"),
     })
 
 
-def ask_view(request, *args, **kwargs):
-    if not request.user.is_authenticated:
-        messages.error(request, 'Нужно войти, чтобы задавать вопросы.')
-        return redirect('core:login')
-
-    if request.method == 'POST':
+@login_required
+def ask_view(request):
+    if request.method == "POST":
         form = AskForm(request.POST)
         if form.is_valid():
             question = form.save(commit=True, author=request.user)
-            messages.success(request, 'Вопрос успешно создан!')
-            return redirect('questions:question_detail', question_id=question.pk)
+
+            tags_list = form.cleaned_data.get("tags_input", [])
+            for tag_name in tags_list:
+                tag, _ = Tag.objects.get_or_create(name=tag_name)
+                QuestionTag.objects.get_or_create(question=question, tag=tag)
+
+            messages.success(request, "Вопрос создан")
+            return redirect("questions:question_detail", question_id=question.pk)
     else:
         form = AskForm()
 
-    ctx = {'form': form}
-    ctx.update(sidebar_ctx())
-    return render(request, 'questions/ask.html', ctx)
+    return render(request, "questions/ask.html", {"form": form})
 
 
-def hot_questions(request):
-    qs = Question.objects.best_full().select_related('author__profile')
-    page = paginate(qs, request, per_page=4)
-    return render(request, 'questions/hot.html', {
-        "questions": page,
-        "page_title": "Hot Questions",
-        **sidebar_ctx(),
-    })
-
-
-def _redirect_back_or_detail(request, question_pk: int):
-    next_url = request.POST.get("next")
-    return redirect(next_url) if next_url else redirect(
-        reverse("questions:question_detail", args=[question_pk])
-    )
-
-
-@require_POST
-def mark_answer_correct(request, question_id: int, answer_id: int):
-    answer = get_object_or_404(Answer, pk=answer_id, question_id=question_id)
-    answer.mark_correct()
-
-    cache_key = f'question_detail_{question_id}'
-    cache.delete(cache_key)
-
-    if _is_ajax(request):
-        return JsonResponse({
-            'ok': True,
-            'answer_id': answer_id,
-            'question_id': question_id,
-            'is_correct': True,
-        })
-
-    return _redirect_back_or_detail(request, answer.question_id)
-
-
-@require_POST
-def unmark_answer_correct(request, question_id: int, answer_id: int):
-    answer = get_object_or_404(Answer, pk=answer_id, question_id=question_id)
-    answer.unmark_correct()
-
-    cache_key = f'question_detail_{question_id}'
-    cache.delete(cache_key)
-
-    if _is_ajax(request):
-        return JsonResponse({
-            'ok': True,
-            'answer_id': answer_id,
-            'question_id': question_id,
-            'is_correct': False,
-        })
-
-    return _redirect_back_or_detail(request, answer.question_id)
-
-
-@require_POST
-def vote_question(request, question_id: int):
-    if not _is_ajax(request):
-        return JsonResponse({'ok': False, 'error': 'Only AJAX allowed'}, status=400)
-
-    if not request.user.is_authenticated:
-        return JsonResponse({'ok': False, 'error': 'auth_required'}, status=401)
+@login_required
+def vote_question(request, question_id):
+    if request.method != "POST" or request.headers.get("x-requested-with") != "XMLHttpRequest":
+        return JsonResponse({"ok": False, "error": "Invalid request"}, status=400)
 
     question = get_object_or_404(Question, pk=question_id, is_active=True)
-
     try:
-        rating = int(request.POST.get('rating'))
-    except (TypeError, ValueError):
-        return JsonResponse({'ok': False, 'error': 'Invalid rating'}, status=400)
+        new_rating = int(request.POST.get("rating", "0"))
+    except ValueError:
+        return JsonResponse({"ok": False, "error": "Invalid rating"}, status=400)
 
-    question.rating = rating
-    question.save(update_fields=['rating'])
+    if new_rating not in (-1, 0, 1):
+        new_rating = 0
 
-    cache.delete(f'question_detail_{question_id}')
+    with transaction.atomic():
+        like, created = QuestionLike.objects.get_or_create(
+            question=question, user=request.user, defaults={"value": 0}
+        )
+        delta = new_rating - like.value
+        like.value = new_rating
+        like.is_liked = (new_rating > 0)
+        like.save()
 
-    return JsonResponse({'ok': True, 'rating': question.rating})
+        Question.objects.filter(pk=question.pk).update(rating=F("rating") + delta)
+        question.refresh_from_db()
+
+    return JsonResponse({"ok": True, "rating": question.rating, "user_vote": like.value})
 
 
-@require_POST
-def vote_answer(request, question_id: int, answer_id: int):
-    if not _is_ajax(request):
-        return JsonResponse({'ok': False, 'error': 'Only AJAX allowed'}, status=400)
+@login_required
+def vote_answer(request, question_id, answer_id):
+    if request.method != "POST" or request.headers.get("x-requested-with") != "XMLHttpRequest":
+        return JsonResponse({"ok": False, "error": "Invalid request"}, status=400)
 
-    if not request.user.is_authenticated:
-        return JsonResponse({'ok': False, 'error': 'auth_required'}, status=401)
-
-    answer = get_object_or_404(
-        Answer,
-        pk=answer_id,
-        question_id=question_id,
-        is_active=True,
-    )
-
+    answer = get_object_or_404(Answer, pk=answer_id, question_id=question_id, is_active=True)
     try:
-        rating = int(request.POST.get('rating'))
-    except (TypeError, ValueError):
-        return JsonResponse({'ok': False, 'error': 'Invalid rating'}, status=400)
+        new_rating = int(request.POST.get("rating", "0"))
+    except ValueError:
+        return JsonResponse({"ok": False, "error": "Invalid rating"}, status=400)
 
-    answer.rating = rating
-    answer.save(update_fields=['rating'])
+    if new_rating not in (-1, 0, 1):
+        new_rating = 0
 
-    cache.delete(f'question_detail_{question_id}')
+    with transaction.atomic():
+        like, created = AnswerLike.objects.get_or_create(
+            answer=answer, user=request.user, defaults={"value": 0}
+        )
+        delta = new_rating - like.value
+        like.value = new_rating
+        like.is_liked = (new_rating > 0)
+        like.save()
 
-    return JsonResponse({'ok': True, 'rating': answer.rating})
+        Answer.objects.filter(pk=answer.pk).update(rating=F("rating") + delta)
+        answer.refresh_from_db()
+
+    return JsonResponse({"ok": True, "rating": answer.rating, "user_vote": like.value})
+
+
+@login_required
+def mark_answer_correct(request, question_id, answer_id):
+    question = get_object_or_404(Question, pk=question_id, author=request.user)
+    answer = get_object_or_404(Answer, pk=answer_id, question=question)
+    answer.mark_correct()
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"ok": True})
+    return redirect("questions:question_detail", question_id=question_id)
+
+
+@login_required
+def unmark_answer_correct(request, question_id, answer_id):
+    question = get_object_or_404(Question, pk=question_id, author=request.user)
+    answer = get_object_or_404(Answer, pk=answer_id, question=question)
+    answer.unmark_correct()
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"ok": True})
+    return redirect("questions:question_detail", question_id=question_id)

@@ -30,4 +30,6 @@ if [ ! -f /app/.bootstrapped ]; then
   touch /app/.bootstrapped
 fi
 
+python manage.py update_sidebar_cache || true
+
 python manage.py runserver 0.0.0.0:8000

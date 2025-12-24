@@ -1,66 +1,15 @@
-# core/views.py
-from django.core.cache import cache
 from django.contrib.auth import get_user_model, login, logout
+from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 
-from questions.models import Tag, Question, Answer
+from questions.models import Question, Answer
 from .forms import LoginForm, RegistrationForm, SettingsForm
 from .models import UserProfile
 
 User = get_user_model()
-
-
-def _is_ajax(request):
-    return request.headers.get('x-requested-with') == 'XMLHttpRequest'
-
-
-def sidebar_ctx():
-    cache_key = 'sidebar_data_v4'
-    cached_data = cache.get(cache_key)
-    if cached_data:
-        return cached_data
-
-    try:
-        popular_tags = (
-            Tag.objects
-               .annotate(q_count=Count('tag_questions', distinct=True))
-               .order_by('-q_count')[:10]
-        )
-
-        best_members = (
-            User.objects
-                .select_related('profile')
-                .filter(profile__is_active=True)
-                .order_by('-profile__total_activity')[:10]
-        )
-
-        if not best_members:
-            best_members = (
-                User.objects
-                    .select_related('profile')
-                    .filter(is_active=True)
-                    .order_by('-date_joined')[:10]
-            )
-
-        if not best_members:
-            best_members = User.objects.select_related('profile').all()[:10]
-
-        data = {
-            'popular_tags': list(popular_tags),
-            'best_members': list(best_members),
-        }
-
-        cache.set(cache_key, data, 300)
-        return data
-    except Exception as e:
-        print(f"Error in sidebar_ctx: {e}")
-        return {
-            'popular_tags': [],
-            'best_members': User.objects.select_related('profile').filter(is_active=True)[:5],
-        }
 
 
 def logout_view(request):
@@ -70,18 +19,19 @@ def logout_view(request):
 
 def login_view(request, *args, **kwargs):
     if request.user.is_authenticated:
-        if _is_ajax(request):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({'ok': False, 'error': 'Already authenticated'}, status=400)
         return redirect('questions:index')
+
+    next_url = request.GET.get('next') or request.POST.get('next') or reverse('questions:index')
 
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
             user = form.cleaned_data['user']
             login(request, user)
-            next_url = request.POST.get('next') or reverse('questions:index')
 
-            if _is_ajax(request):
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 avatar_url = None
                 if hasattr(user, 'profile'):
                     avatar_url = user.profile.get_avatar_url()
@@ -93,7 +43,7 @@ def login_view(request, *args, **kwargs):
                 })
             return redirect(next_url)
         else:
-            if _is_ajax(request):
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({
                     'ok': False,
                     'errors': form.errors,
@@ -101,14 +51,13 @@ def login_view(request, *args, **kwargs):
     else:
         form = LoginForm()
 
-    ctx = {'form': form}
-    ctx.update(sidebar_ctx())
+    ctx = {'form': form, 'next': next_url}
     return render(request, 'core/login.html', ctx)
 
 
 def register_view(request, *args, **kwargs):
     if request.user.is_authenticated:
-        if _is_ajax(request):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({'ok': False, 'error': 'Already authenticated'}, status=400)
         return redirect('questions:index')
 
@@ -118,7 +67,7 @@ def register_view(request, *args, **kwargs):
             user = form.save()
             login(request, user)
 
-            if _is_ajax(request):
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({
                     'ok': True,
                     'redirect_url': reverse('questions:index'),
@@ -127,7 +76,7 @@ def register_view(request, *args, **kwargs):
                 })
             return redirect('questions:index')
         else:
-            if _is_ajax(request):
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({
                     'ok': False,
                     'errors': form.errors,
@@ -136,16 +85,11 @@ def register_view(request, *args, **kwargs):
         form = RegistrationForm()
 
     ctx = {'form': form}
-    ctx.update(sidebar_ctx())
     return render(request, 'core/register.html', ctx)
 
 
+@login_required
 def settings_view(request, *args, **kwargs):
-    if not request.user.is_authenticated:
-        if _is_ajax(request):
-            return JsonResponse({'ok': False, 'error': 'Unauthorized'}, status=401)
-        return redirect('core:login')
-
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
 
     if request.method == 'POST':
@@ -153,7 +97,7 @@ def settings_view(request, *args, **kwargs):
         if form.is_valid():
             profile = form.save()
 
-            if _is_ajax(request):
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({
                     'ok': True,
                     'username': request.user.username,
@@ -162,7 +106,7 @@ def settings_view(request, *args, **kwargs):
                 })
             return redirect('core:settings')
         else:
-            if _is_ajax(request):
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({
                     'ok': False,
                     'errors': form.errors,
@@ -171,7 +115,6 @@ def settings_view(request, *args, **kwargs):
         form = SettingsForm(instance=profile, user=request.user)
 
     ctx = {'form': form}
-    ctx.update(sidebar_ctx())
     return render(request, 'core/settings.html', ctx)
 
 
@@ -202,5 +145,4 @@ def member_detail(request, pk, *args, **kwargs):
         'questions': questions,
         'answers': answers,
     }
-    ctx.update(sidebar_ctx())
     return render(request, 'core/member_detail.html', ctx)

@@ -9,8 +9,9 @@
     <h2>Login</h2>
   </div>
 
-  <form class="form" id="loginForm" method="post">
+  <form class="form" id="loginForm" action="" method="post">
     {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
 
     <div id="login-global-errors" class="form__errors" style="display:none;"></div>
 
@@ -44,8 +45,16 @@
       {% endif %}
     </div>
 
+    {% if form.non_field_errors %}
+      <div class="form__errors">
+        {% for error in form.non_field_errors %}
+          <div class="error">{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     <div class="form__actions">
-      <button class="btn btn--primary" type="submit">Login</button>
+      <button class="btn btn--primary" type="submit">Login!</button>
     </div>
   </form>
 </section>
@@ -66,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function showErrors(errors) {
         for (const [field, msgs] of Object.entries(errors)) {
-            if (field === '__all__') {
+            if (field === '__all__' || field === 'non_field_errors') {
                 const globalErrors = document.getElementById('login-global-errors');
                 if (globalErrors) {
                     globalErrors.style.display = 'block';
@@ -74,20 +83,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         .map(m => `<div class="error">${m}</div>`)
                         .join('');
                 }
-                continue;
-            }
-
-            const container = document.querySelector(`.form__errors[data-error-for="${field}"]`);
-            if (container) {
-                container.style.display = 'block';
-                container.innerHTML = msgs
-                    .map(m => `<div class="error">${m}</div>`)
-                    .join('');
             } else {
-                const globalErrors = document.getElementById('login-global-errors');
-                if (globalErrors) {
-                    globalErrors.style.display = 'block';
-                    globalErrors.innerHTML += msgs
+                const container = document.querySelector(`.form__errors[data-error-for="${field}"]`);
+                if (container) {
+                    container.style.display = 'block';
+                    container.innerHTML = msgs
                         .map(m => `<div class="error">${m}</div>`)
                         .join('');
                 }

@@ -8,6 +8,7 @@
             <h2>{{ page_title }}</h2>
             <a href="{% url 'questions:hot' %}">Hot Questions</a>
         </div>
+
         <div class="questions__content">
             {% for q in questions %}
             <div class="question__root">
@@ -16,7 +17,10 @@
                         src="{{ q.author.profile.get_avatar_url }}"
                         alt="{{ q.author.username }}"
                         class="question__image"
+                        onerror="this.onerror=null; this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';"
                     >
+
+                    {% if user.is_authenticated %}
                     <input
                         class="question__votes"
                         type="number"
@@ -24,21 +28,34 @@
                         data-question-id="{{ q.id }}"
                         data-vote-url="{% url 'questions:vote_question' q.id %}"
                     >
+                    {% else %}
+                    <input
+                        class="question__votes"
+                        type="number"
+                        value="{{ q.rating }}"
+                        disabled
+                        title="Войдите, чтобы голосовать"
+                    >
+                    {% endif %}
                 </div>
+
                 <div class="question__content">
                     <h3 class="question__header">
                         <a href="{% url 'questions:question_detail' q.id %}">{{ q.name }}</a>
                     </h3>
+
                     <p class="question__description">{{ q.short_text }}</p>
+
                     <div class="question__footer">
                         <a href="{% url 'questions:question_detail' q.id %}" class="question__answers">
                             answers ({{ q.answers_count }})
                         </a>
+
                         <div class="question__tags">
                             <span class="question__subtitle">Tags</span>
                             <div class="question__tags__list">
                                 {% for qt in q.question_tags.all %}
-                                    <a class="tag" href="{% url 'questions:tag' %}?tag={{ qt.tag.name }}">
+                                    <a class="tag" href="{% url 'questions:tag' %}?tag={{ qt.tag.name|urlencode }}">
                                         {{ qt.tag.name }}
                                     </a>
                                 {% empty %}
@@ -47,6 +64,7 @@
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
             {% empty %}
@@ -55,19 +73,13 @@
             </div>
             {% endfor %}
         </div>
+
         {% include 'questions/blocks/pagination.html' with objects=questions %}
     </div>
 </section>
 
 <script>
-const params = new URLSearchParams(location.search);
-const currentTag = params.get('tag');
-if (currentTag) {
-    document.title = `Tag: ${currentTag} • OlegOverFlow`;
-}
-
 document.addEventListener('DOMContentLoaded', function () {
-
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -88,6 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function attachVoteHandler(input) {
         if (!input) return;
+        if (input.disabled) return;
 
         input.dataset.prevRating = input.value;
 
@@ -117,7 +130,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
                 if (!data.ok) {
-                    alert(data.error || 'Ошибка при голосовании');
                     input.value = prev;
                     return;
                 }
@@ -126,7 +138,6 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .catch(err => {
                 console.error(err);
-                alert('Ошибка сети при голосовании');
                 input.value = prev;
             });
         });
