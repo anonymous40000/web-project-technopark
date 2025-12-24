@@ -1,0 +1,1 @@
+*/5 * * * * cd /app && python manage.py update_sidebar_cache >> /tmp/sidebar_cron.log 2>&1
