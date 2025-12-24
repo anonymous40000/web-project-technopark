@@ -1,0 +1,22 @@
+{
+  "http_server": { "port": 8000, "address": "0.0.0.0" },
+  "client": {
+    "allowed_origins": [
+      "http://localhost:8000",
+      "http://127.0.0.1:8000",
+      "http://0.0.0.0:8000"
+    ],
+    "token": { "hmac_secret_key": "dev_jwt_secret_olegoverflow_2025" }
+  },
+  "http_api": { "key": "dev_api_key_olegoverflow_2025" },
+  "health": { "enabled": true },
+
+  "channel": {
+    "namespaces": [
+      {
+        "name": "question",
+        "allow_subscribe_for_client": true
+      }
+    ]
+  }
+}

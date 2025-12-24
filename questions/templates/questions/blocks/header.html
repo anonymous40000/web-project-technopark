@@ -6,17 +6,28 @@
         OlegOverFlow
       </a>
     </span>
+
     <div class="header__search-container">
-      <form method="GET" action="{% url 'questions:index' %}" class="header__search-form">
-        <input type="text" name="q" class="header__search" placeholder="Search..." value="{{ request.GET.q }}">
+      <form method="GET" action="{{ request.path }}" class="header__search-form">
+        {% if request.GET.tag %}
+          <input type="hidden" name="tag" value="{{ request.GET.tag|urlencode }}">
+        {% endif %}
+        <input type="text" name="q" class="header__search" placeholder="Search..." value="{{ request.GET.q|default:'' }}">
         <button type="submit" class="header__ask-btn" style="background-color: #0056b3;">Search</button>
         <a class="header__ask-btn" href="{% url 'questions:ask' %}">ASK!</a>
       </form>
     </div>
-    
+
     {% if user.is_authenticated %}
       <div class="header__profile">
-          <img src="{{ user.profile.get_avatar_url }}" alt="pic" class="header__profile__image">
+          <div class="header__profile__avatar-wrapper">
+              <img 
+                src="{{ user.profile.get_avatar_url }}" 
+                alt="{{ user.username }}" 
+                class="header__profile__image"
+                onerror="this.onerror=null; this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; this.classList.add('is-error');"
+              >
+          </div>
           <div class="header__profile__user">
               <span class="header__profile__username">
                   <a href="{% url 'core:settings' %}">{{ user.username }}</a>
@@ -35,4 +46,3 @@
     {% endif %}
   </div>
 </header>
-

@@ -10,7 +10,6 @@
       <form class="form" id="settingsForm" method="post" enctype="multipart/form-data">
         {% csrf_token %}
 
-        <!-- глобальные ошибки (AJAX) — по умолчанию скрыты -->
         <div id="settings-global-errors" class="form__errors" style="display:none;"></div>
 
         <h2 class="form__title">Profile Settings</h2>
@@ -19,14 +18,12 @@
           <label class="form__label" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
           {{ form.username }}
 
-          <!-- ошибки по полю (AJAX) -->
           <div class="form__errors" data-error-for="username" style="display:none;"></div>
 
           {% if form.username.help_text %}
             <div class="form__help">{{ form.username.help_text }}</div>
           {% endif %}
           {% if form.username.errors %}
-            <!-- серверные ошибки (не AJAX) -->
             <div class="form__errors">
               {% for e in form.username.errors %}
                 <div class="error">{{ e }}</div>
@@ -76,7 +73,6 @@
             {{ form.profile_pic.label }}
           </label>
 
-          {# НИКАКИХ превью, только стандартный ClearableFileInput #}
           {{ form.profile_pic }}
 
           <div class="form__errors" data-error-for="profile_pic" style="display:none;"></div>
@@ -152,7 +148,6 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .then(response => response.json())
             .then(data => {
-                // console.log('settings response', data); // можно включить для дебага
                 if (data.ok) {
                     if (data.avatar_url && headerAvatar) {
                         headerAvatar.src = data.avatar_url;

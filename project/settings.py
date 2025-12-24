@@ -35,7 +35,7 @@ SECRET_KEY = 'django-insecure-yq5k-37&ty_!alvpkh%g1z&k%iivs_a62o9f9a_(q15=@5pigy
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['0.0.0.0']
+ALLOWED_HOSTS = ['0.0.0.0', '127.0.0.1', "localhost"]
 
 
 # Application definition
@@ -75,6 +75,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.sidebar',
             ],
         },
     },
@@ -159,3 +160,15 @@ CACHES = {
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+CENTRIFUGO_HTTP_URL = os.getenv('CENTRIFUGO_HTTP_URL', 'http://localhost:8001')
+CENTRIFUGO_WS_URL = os.getenv('CENTRIFUGO_WS_URL', 'ws://localhost:8001/connection/websocket')
+CENTRIFUGO_API_KEY = os.getenv('CENTRIFUGO_API_KEY', 'dev_api_key_olegoverflow_2025')
+CENTRIFUGO_JWT_SECRET = os.getenv('CENTRIFUGO_JWT_SECRET', 'dev_jwt_secret_olegoverflow_2025')
+
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://0.0.0.0:8000",
+]
